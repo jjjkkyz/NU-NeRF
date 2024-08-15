@@ -1,0 +1,38 @@
+name: pigplane4
+
+
+####network#####
+network: shape
+database_name: nerf/pig_plane
+apply_acc_loss: true
+occ_loss_step: 20000
+is_nerf: true
+
+######loss######
+loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','mask','outer_reg','transmission_reg']
+val_metric: ['shape_render']
+key_metric_name: psnr
+eikonal_weight: 0.04
+freeze_inv_s_step: 20000
+
+####dataset#####
+train_dataset_type: dummy
+dataset_dir: /home/sunjiamu/instant-ngp
+train_dataset_cfg:
+  database_name: nerf/pig_plane
+val_set_list:
+  -
+    name: val
+    type: dummy
+    cfg:
+      database_name: nerf/pig_plane
+
+####trainier####
+optimizer_type: adam
+lr_type: warm_up_cos
+lr_cfg: {}
+total_step: 500000
+val_interval: 5000
+save_interval: 1000
+train_log_step: 20
+
