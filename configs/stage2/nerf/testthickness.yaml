@@ -20,7 +20,7 @@ freeze_inv_s_step: 5000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: /home/sunjiamu/instant-ngp
+dataset_dir: anon
 train_dataset_cfg:
   database_name: nerf/ball_0_7_0_68
 val_set_list:

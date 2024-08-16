@@ -8,8 +8,8 @@ scene = o3d.t.geometry.RaycastingScene()
 
 
 
-mesh_inner_path = '/home/sunjiamu/NeRO/data/meshes/refrac_s2_plastic_single2-100011.ply'
-mesh_outer_path = '/home/sunjiamu/NeRO/data/meshes/refrac_withexpref_bottle_nothickness_near13-300000inv.ply'
+mesh_inner_path = 'anon'
+mesh_outer_path = 'anon'
 
 mesh_outer = trimesh.load(mesh_outer_path)
 mesh_inner = trimesh.load(mesh_inner_path)

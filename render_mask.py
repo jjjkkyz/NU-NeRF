@@ -5,7 +5,7 @@ import numpy as np
 from dataset.database_formask import *
 from network.DiffRender import Ray,Intersection,Scene
 import cv2 as cv
-database = NeRFSyntheticDatabase('nerf/thickbottle_kirsch_final','/home/sunjiamu/instant-ngp')
+database = NeRFSyntheticDatabase('nerf/thickbottle_kirsch_final','anon')
 
 
 def build_imgs_info(database, img_ids, is_nerf=False):
@@ -56,7 +56,7 @@ poses = imgs_info['poses']  # imn,3,4
 # if is_train:
 #     masks = imgs_info['masks'].reshape(imn, h * w)
 
-scene = Scene('/home/sunjiamu/NeRO/data/meshes/refrac_kirsch_final2-195000_sim2.ply')
+scene = Scene(anon)
 for img_idx in range(imn):
     rays_d = torch.sum(dirs[..., None, :].cpu() * poses[img_idx, :3, :3], -1).cuda()
     rays_o = poses[img_idx, :3, -1].reshape(1,1,3).expand(1024,1024,3).cuda()
@@ -67,5 +67,5 @@ for img_idx in range(imn):
     intersection_info, converged = scene.Dintersect(rays_for_intersection)
     converged = converged.reshape(1024,1024).reshape(1024,1024,1).expand(1024,1024,3).detach().cpu().numpy()
     converged = (converged * 255).astype(np.uint8)
-    cv.imwrite('/home/sunjiamu/instant-ngp/thickbottle_kirsch_final/mask/lgt0_r_' + str(img_idx) + '.jpg',converged)
+    cv.imwrite('anonthickbottle_kirsch_final/mask/lgt0_r_' + str(img_idx) + '.jpg',converged)
    # exit(1)

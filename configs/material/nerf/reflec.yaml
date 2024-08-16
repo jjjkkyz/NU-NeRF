@@ -24,7 +24,7 @@ key_metric_name: psnr
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: /home/sunjiamu/instant-ngp
+dataset_dir: anon
 train_dataset_cfg:
   database_name: nerf/reflec
   dataset_dir:

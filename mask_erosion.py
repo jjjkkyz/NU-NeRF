@@ -2,8 +2,8 @@ import cv2 as cv
 import os
 import numpy as np
 
-mask_path = '/home/sunjiamu/instant-ngp/cylinderbottle/mask'
-mask_erosion_path = '/home/sunjiamu/instant-ngp/cylinderbottle/mask_erosion'
+mask_path = 'anoncylinderbottle/mask'
+mask_erosion_path = 'anoncylinderbottle/mask_erosion'
 
 if not os.path.exists(mask_erosion_path):
     os.makedirs(mask_erosion_path,exist_ok=True)

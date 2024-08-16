@@ -18,7 +18,7 @@ freeze_inv_s_step: 15000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: /home/sunjiamu/instant-ngp
+dataset_dir: anon
 train_dataset_cfg:
   database_name: custom/cylinderbottle/1080
 val_set_list:

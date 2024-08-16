@@ -17,7 +17,7 @@ freeze_inv_s_step: 20000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: /home/sunjiamu/instant-ngp
+dataset_dir: anon
 train_dataset_cfg:
   database_name: nerf/refracbunny_forest
 val_set_list:

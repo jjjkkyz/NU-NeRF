@@ -5,7 +5,7 @@ import numpy as np
 from dataset.database_formask import *
 from network.DiffRender import Ray,Intersection,Scene
 import cv2 as cv
-database = CustomDatabase('custom/ballstatue/1080','/home/sunjiamu/instant-ngp')
+database = CustomDatabase('custom/ballstatue/1080','anon')
 import torch.nn.functional as F
 
 def build_imgs_info(database, img_ids, is_nerf=False):
@@ -78,7 +78,7 @@ rays_o = rays_o.permute(0, 2, 1).repeat(1, h * w, 1)  # imn,h*w,3
 #exit(1)
 # if is_train:
 #     masks = imgs_info['masks'].reshape(imn, h * w)
-scene = Scene('/home/sunjiamu/NeRO/data/meshes/ballstatue3-300000_inv.ply')
+scene = Scene(anon)
 for img_idx in range(imn):
     
     rays_o_i = rays_o[img_idx].cuda()
@@ -91,5 +91,5 @@ for img_idx in range(imn):
     converged = converged.reshape(1920,1080).reshape(1920,1080,1).expand(1920,1080,3).detach().cpu().numpy()
     converged = (converged * 255).astype(np.uint8)
     print(database.image_names)
-    cv.imwrite('/home/sunjiamu/instant-ngp/ballstatue/mask/' + imgs_info['names'][img_idx][:-4] +  '.jpg',converged)
+    cv.imwrite('anonballstatue/mask/' + imgs_info['names'][img_idx][:-4] +  '.jpg',converged)
    # exit(1)

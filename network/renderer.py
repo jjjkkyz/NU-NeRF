@@ -955,7 +955,7 @@ class Stage2Renderer(nn.Module):
         self.register_parameter(name="IORs", param=self.IORs)
 
         
-        checkpoint = torch.load('/home/sunjiamu/NeRO/data/model/refrac_withexpref_bottle_nothickness_near13/model.pth')       
+        checkpoint = torch.load('anon')       
         cfg1 = cfg
         print(cfg1)
         cfg1['shader_config']['sphere_direction'] = False
@@ -972,9 +972,9 @@ class Stage2Renderer(nn.Module):
         self.stage1_network.eval().cuda()
        # self.infinity_far_bkgr = InfOutNetwork()
         self.infinity_far_bkgr = self.stage1_network.infinity_far_bkgr
-        #self.mesh = pymesh.meshio.load_mesh('/home/sunjiamu/NeRO/data/meshes/refrac_withexpref_complex1-300000.ply', drop_zero_dim=False)
-        mesh_path = '/home/sunjiamu/NeRO/data/meshes/refrac_withexpref_bottle_nothickness_near13-300000inv.ply'
-      #  mesh_path = '/home/sunjiamu/NeRO/data/meshes/refrac_withexpref_complex_withadd4-491000.ply'
+        #self.mesh = pymesh.meshio.load_mesh(anon, drop_zero_dim=False)
+        mesh_path = anon
+      #  mesh_path = anon
         self.mesh = pymesh.meshio.load_mesh(mesh_path, drop_zero_dim=False)
         self.mesh_separated = pymesh.separate_mesh(self.mesh)
         self.trimesh_mesh = trimesh.load(mesh_path)

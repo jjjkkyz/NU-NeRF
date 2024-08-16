@@ -16,7 +16,7 @@ freeze_inv_s_step: 10000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: /home/sunjiamu/instant-ngp
+dataset_dir: anon
 train_dataset_cfg:
   database_name: nerf/sphere_pot4
 val_set_list:

@@ -7,7 +7,7 @@ import trimesh
 import torch
 
 script_dir = os.path.dirname(__file__)
-cuda_src = '/home/sunjiamu/NeRO/cuda/triangle.cu'
+cuda_src = anon
 
 #img_size = (1024, 768)
 
@@ -170,8 +170,8 @@ if __name__ == '__main__':
     pipeline = create_pipeline(ctx, program_grps, pipeline_options)
     sbt = create_sbt(program_grps)
     
-    mesh_tmp = trimesh.load('/home/sunjiamu/DRT/data/dog_scan.ply')
-    #mesh_tmp = trimesh.load('/home/sunjiamu/NeuralRecon-W/logs/train-test_optix-20230530_164928/meshes/00260000_detail.ply')
+    mesh_tmp = trimesh.load('anon')
+    #mesh_tmp = trimesh.load(anon)
     #self.renderer.bvh = cubvh.cuBVH(mesh_tmp.vertices, mesh_tmp.faces)
     vertices = cp.asarray(mesh_tmp.vertices.astype(np.float32))
     faces = cp.asarray(mesh_tmp.faces.astype(np.uint32))
