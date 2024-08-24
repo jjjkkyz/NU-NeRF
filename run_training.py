@@ -1,6 +1,6 @@
 import argparse
 
-from train.trainer_orig_orig import Trainer
+from train.trainer import Trainer
 from utils.base_utils import load_cfg
 
 parser = argparse.ArgumentParser()
