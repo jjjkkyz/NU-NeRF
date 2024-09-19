@@ -4,7 +4,7 @@
 
 ## Jia-Mu Sun, Tong Wu, Ling-Qi Yan, Lin Gao
 ### ACM Transactions on Graphics(SIGGRAPH Asia 2024)
-## [Project Page](http://geometrylearning.com/NU-NeRF/) | Paper (Coming Soon)
+## [Project Page](http://geometrylearning.com/NU-NeRF/) | Paper
 ****
 
 ## Get Started
@@ -39,7 +39,6 @@ We have provided  some synthetic and real datasets used in the paper in [Google 
 
 ### Preparing your own dataset
 
-TODO
 
 ### Fill in config files
 TODO
@@ -52,4 +51,18 @@ python run_training.py --cfg configs/shape/nerf/spherepot.yaml
 ### Run Stage 2 Reconstruction(Example on Spherepot dataset)
 ```bash
 python run_training.py --cfg configs/stage2/nerf/spherepot.yaml 
+```
+
+### Acknowledgements
+A large portion of this repo is built upon the code of [NeRO](https://github.com/liuyuan-pal/NeRO). Thank the authors of NeRO for their incredible work!
+
+### Cite
+If you find the paper/code/data helpful for you, please cite our work:
+```
+@article{NU-NeRF,
+    author = {Jia-Mu Sun and Tong Wu and Ling-Qi Yan and Lin Gao},
+    title = {NU-NeRF: Neural Reconstruction of Nested Transparent Objects with Uncontrolled Capture Environment},
+    booktitle = {ACM Transactions on Graphics(ACM SIGGRAPH Asia 2024)},
+    year = {2024}
+}
 ```
