@@ -975,13 +975,13 @@ class Stage2Renderer(nn.Module):
         #self.mesh = pymesh.meshio.load_mesh(anon, drop_zero_dim=False)
         mesh_path = anon
       #  mesh_path = anon
-        self.mesh = pymesh.meshio.load_mesh(mesh_path, drop_zero_dim=False)
-        self.mesh_separated = pymesh.separate_mesh(self.mesh)
+        #self.mesh = pymesh.meshio.load_mesh(mesh_path, drop_zero_dim=False)
+        #self.mesh_separated = pymesh.separate_mesh(self.mesh)
         self.trimesh_mesh = trimesh.load(mesh_path)
-        print(self.mesh_separated)
-        self.bounding_boxes = []
-        for m in self.mesh_separated:
-            self.bounding_boxes.append([np.min(m.vertices,axis=0),np.max(m.vertices,axis=0)])
+        #print(self.mesh_separated)
+       # self.bounding_boxes = []
+       #for m in self.mesh_separated:
+       #     self.bounding_boxes.append([np.min(m.vertices,axis=0),np.max(m.vertices,axis=0)])
 
         self.scene = Scene(mesh_path)
         self.IORs_pred = IoRNetwork()
