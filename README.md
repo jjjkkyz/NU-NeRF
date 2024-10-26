@@ -60,7 +60,7 @@ pip install .
 We have provided  some synthetic and real datasets used in the paper in [Google Drive](FIXME). 
 
 ### -OR- Preparing your own dataset
-
+Please consult [the manual for NeRO for now](https://github.com/liuyuan-pal/NeRO/blob/main/custom_object.md).
 
 ### Fill in config files or use the corresponding file for our dataset
 Explanations of some essential entrys in the config files. Most of the config entry should document themselves.
@@ -86,9 +86,10 @@ python extract_mesh_stage1.py --cfg configs/shape/nerf/spherepot.yaml
 ### the extracted result will be located in data/meshes/EXPNAME-step.ply
 ```
 
-### Render mask and do erosion on the extracted mask
+### Render mask and do erosion on the extracted mask(If you are using non-zero thickness configuration)
 ```bash
-
+python render_mask.py --cfg configs/shape/nerf/spherepot.yaml --mesh_path <exported mesh path>
+python mask_erosion.py --cfg configs/shape/nerf/spherepot.yaml --mesh_path <exported mesh path>
 ```
 
 ### Run Stage 2 Reconstruction(Example on Spherepot dataset)

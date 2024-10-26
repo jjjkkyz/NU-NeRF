@@ -10,7 +10,7 @@ apply_occ_loss: true
 occ_loss_step: 15000
 get_mask: false
 zero_thickness: False
-
+is_nerf: false
 
 ######loss######
 loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','outer_reg']
@@ -21,7 +21,7 @@ freeze_inv_s_step: 15000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: ../NUNeRF_data
+dataset_dir: ./datasets
 train_dataset_cfg:
   database_name: custom/ballstatue/1080
 val_set_list:

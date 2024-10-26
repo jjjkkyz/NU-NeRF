@@ -523,7 +523,7 @@ class CustomDatabase(BaseDatabase):
         return self.img_ids
 
     def get_mask(self, img_id):
-        img = imread(f'{self.root}/mask_erosion/{self.image_names[img_id]}')[...,:1]
+        img = imread(f'{self.root}/mask_erosion/{self.image_names[img_id]}')[...,:1] / 255.0
         return img
 
 
@@ -553,6 +553,7 @@ class NeRFSyntheticDatabase(BaseDatabase):
         all_imgs = []
         all_masks = []
         all_poses = []
+        self.image_names = []
         counts = [0]
         for s in splits:
             meta = metas[s]
@@ -567,7 +568,7 @@ class NeRFSyntheticDatabase(BaseDatabase):
             for frame in meta['frames'][::skip]:
                 fname = os.path.join(self.root, frame['file_path'] + '.png')
                 imgs.append(imageio.imread(fname))
-
+                self.image_names.append(frame['file_path'] + '.png')
                # fname_real = fname.split('/')[-1]
                # fname_path = frame['file_path'][:-len(fname_real)]
                # fname_mask = fname
@@ -643,7 +644,7 @@ class NeRFSyntheticDatabase(BaseDatabase):
         return depth, mask
 
     def get_mask(self, img_id):
-        return self.all_masks[int(img_id)]
+        return self.all_masks[int(img_id)] / 255.0
 
 
 def parse_database_name(database_name: str, dataset_dir: str) -> BaseDatabase:

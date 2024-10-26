@@ -29,8 +29,8 @@ def build_imgs_info(database: BaseDatabase, img_ids, is_nerf=False, s2_mask=True
     #exit(1)
     images = np.stack(images, 0)
     if is_nerf:
-        masks = [database.get_depth(img_id)[1] for img_id in img_ids]
-        masks = np.stack(masks, 0)
+        masks = [database.get_mask(img_id) for img_id in img_ids]
+        #masks = np.stack(masks, 0)
         images = color_map_forward(images).astype(np.float32)
     elif s2_mask:
         masks = [database.get_mask(img_id) for img_id in img_ids]
@@ -40,7 +40,9 @@ def build_imgs_info(database: BaseDatabase, img_ids, is_nerf=False, s2_mask=True
         masks = images[...,0]
     Ks = np.stack(Ks, 0).astype(np.float32)
     poses = np.stack(poses, 0).astype(np.float32)
-    masks = np.stack(masks, 0)
+    masks = np.stack(masks, 0).astype(np.float32)
+   # print(masks.max())
+    #print(masks.min())
     imgs_info = {
         'imgs': images, 
         'Ks': Ks, 
@@ -1291,9 +1293,10 @@ class Stage2Renderer(nn.Module):
             for k in outputs_keys: outputs[k].append(cur_outputs[k].detach())
 
         for k in outputs_keys: outputs[k] = torch.cat(outputs[k], 0)
-        outputs['loss_rgb'] = self.compute_rgb_loss(outputs['ray_rgb']* outputs['tir_mask'].detach(), ray_batch['rgbs']* outputs['tir_mask'].detach())
-        outputs['gt_rgb'] = (ray_batch['rgbs'] *  outputs['tir_mask'].detach()).reshape(h, w, 3)
-        outputs['ray_rgb'] = (outputs['ray_rgb'] * outputs['tir_mask'].detach()).reshape(h, w, 3)
+       
+        outputs['loss_rgb'] = self.compute_rgb_loss(outputs['ray_rgb']* outputs['tir_mask'].detach()  * ray_batch['mask'].reshape(-1,1), ray_batch['rgbs']* outputs['tir_mask'].detach()  * ray_batch['mask'].reshape(-1,1))
+        outputs['gt_rgb'] = (ray_batch['rgbs'] *  outputs['tir_mask'].detach() * ray_batch['mask'].reshape(-1,1)).reshape(h, w, 3)
+        outputs['ray_rgb'] = (outputs['ray_rgb'] * outputs['tir_mask'].detach() * ray_batch['mask'].reshape(-1,1)).reshape(h, w, 3)
 
         # used in evaluation
         outputs['gt_depth'] = gt_depth.unsqueeze(-1)
@@ -1316,7 +1319,7 @@ class Stage2Renderer(nn.Module):
 
         outputs = self.render(rays_o, rays_d, mask, near, far, human_poses, -1, self.get_anneal_val(step), is_train=True,
                               step=step, is_nerf=is_nerf)
-        outputs['loss_rgb'] = self.compute_rgb_loss(outputs['ray_rgb'] * outputs['tir_mask'].detach(), train_ray_batch['rgbs']* outputs['tir_mask'].detach()) # ray_loss  # ray_loss
+        outputs['loss_rgb'] = self.compute_rgb_loss(outputs['ray_rgb'] * outputs['tir_mask'].detach() * mask, train_ray_batch['rgbs']* outputs['tir_mask'].detach() * mask) # ray_loss  # ray_loss
        # if is_nerf:  # only nerf dataset add loss_mask
         #    outputs['loss_mask'] = F.l1_loss(train_ray_batch['masks'], outputs['acc'], reduction='mean')
         return outputs
@@ -1746,9 +1749,9 @@ class Stage2Renderer(nn.Module):
            # print(converged.sum())
            # converged_out
             converged_out = converged.clone()
-           # if i == 0:
-             #  converged_out *= mask.bool()
-             #  tir *= mask.bool()
+            #if i == 0:
+            #    converged_out *= mask.bool()
+            #    tir *= mask.bool()
             converged_out[mask_converge] = torch.where(ior_ratio * ior_ratio * sin_thetai_2 > 0.999, False, True)
           #  converged_out[mask_converge] *= torch.where(ior_ratio_anotherside * ior_ratio_anotherside * sin_thetai_2 > 0.999, False, True)
 
@@ -1811,7 +1814,7 @@ class Stage2Renderer(nn.Module):
 
                     center_position = intersection[converged_out[mask_converge].flatten()] - normal[converged_out[mask_converge].flatten()] * curvature_radius
                     
-                    next_start_tmp_positive = intersection[converged_out[mask_converge].flatten()] + next_dir_inner.reshape(-1,3) * (length_dt.reshape(-1,1) + 0.001) / (torch.linalg.norm(next_dir_inner,dim=-1).reshape(-1,1) * cos_thetat.reshape(-1,1))
+                    next_start_tmp_positive = intersection[converged_out[mask_converge].flatten()] + next_dir_inner.reshape(-1,3) * (length_dt.reshape(-1,1) + 0.001) #/ (torch.linalg.norm(next_dir_inner,dim=-1).reshape(-1,1) * cos_thetat.reshape(-1,1))
 
                     normal_after_positive = next_start_tmp_positive - center_position
                     normal_after_positive = normal_after_positive / (torch.linalg.norm(normal_after_positive,dim=-1,keepdim=True) + 0.0001)
@@ -1827,7 +1830,7 @@ class Stage2Renderer(nn.Module):
                    # print(11,length_dt.min())
 
                     center_position = intersection[converged_out[mask_converge].flatten()] + normal[converged_out[mask_converge].flatten()] * curvature_radius
-                    next_start_tmp_negative = intersection[converged_out[mask_converge].flatten()] + next_dir_inner.reshape(-1,3) * (length_dt.reshape(-1,1) + 0.001) / (torch.linalg.norm(next_dir_inner,dim=-1).reshape(-1,1) * cos_thetat.reshape(-1,1))
+                    next_start_tmp_negative = intersection[converged_out[mask_converge].flatten()] + next_dir_inner.reshape(-1,3) * (length_dt.reshape(-1,1) + 0.001) #/ (torch.linalg.norm(next_dir_inner,dim=-1).reshape(-1,1) * cos_thetat.reshape(-1,1))
 
                     normal_after_negative = center_position - next_start_tmp_negative 
                     normal_after_negative = normal_after_negative / (torch.linalg.norm(normal_after_negative,dim=-1,keepdim=True) + 0.0001)
@@ -1938,7 +1941,7 @@ class Stage2Renderer(nn.Module):
 
                     center_position = intersection[converged_out[mask_converge].flatten()] - normal_modified[converged_out[mask_converge].flatten()] * curvature_radius
                     
-                    next_start_tmp_positive = intersection[converged_out[mask_converge].flatten()] + next_dir_inner.reshape(-1,3) * (length_dt.reshape(-1,1) + 0.001) / (torch.linalg.norm(next_dir_inner,dim=-1).reshape(-1,1) * cos_thetat.reshape(-1,1))
+                    next_start_tmp_positive = intersection[converged_out[mask_converge].flatten()] + next_dir_inner.reshape(-1,3) * (length_dt.reshape(-1,1) + 0.001)# / (torch.linalg.norm(next_dir_inner,dim=-1).reshape(-1,1) * cos_thetat.reshape(-1,1))
 
                     normal_after_positive = next_start_tmp_positive - center_position
                     normal_after_positive = normal_after_positive / (torch.linalg.norm(normal_after_positive,dim=-1,keepdim=True) + 0.0001)
@@ -1967,7 +1970,7 @@ class Stage2Renderer(nn.Module):
                     #print(4,length_dt.min())
 
                     center_position = intersection[converged_out[mask_converge].flatten()] + normal_modified[converged_out[mask_converge].flatten()] * curvature_radius
-                    next_start_tmp_negative = intersection[converged_out[mask_converge].flatten()] + next_dir_inner.reshape(-1,3) * (length_dt.reshape(-1,1) + 0.001) / (torch.linalg.norm(next_dir_inner,dim=-1).reshape(-1,1) * cos_thetat.reshape(-1,1))
+                    next_start_tmp_negative = intersection[converged_out[mask_converge].flatten()] + next_dir_inner.reshape(-1,3) * (length_dt.reshape(-1,1) + 0.001) #/ (torch.linalg.norm(next_dir_inner,dim=-1).reshape(-1,1) * cos_thetat.reshape(-1,1))
 
                     normal_after_negative = center_position - next_start_tmp_negative 
                     normal_after_negative = normal_after_negative / (torch.linalg.norm(normal_after_negative,dim=-1,keepdim=True) + 0.0001)

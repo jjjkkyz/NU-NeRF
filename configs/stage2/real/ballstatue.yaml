@@ -1,4 +1,4 @@
-name: ballstatue_s2
+name: ballstatue_s2_2
 
 ####network#####
 network: stage2
@@ -22,7 +22,7 @@ freeze_inv_s_step: 15000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: ../NUNeRF_data
+dataset_dir: ./datasets
 stage1_mesh_dir: ./data/meshes/ballstatue3-300000_fixed.ply
 stage1_ckpt_dir: ./data/model/ballstatue3/model_best.pth
 stage1_cfg_dir: ./configs/shape/real/ballstatue.yaml

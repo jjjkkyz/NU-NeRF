@@ -17,4 +17,4 @@ python-optix
 mask*/
 PyTorchEMD
 *.blend
-datasets/
+datasets/*
