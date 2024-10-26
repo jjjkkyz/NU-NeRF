@@ -6,7 +6,7 @@ database_name: custom/lamp/1600
 shader_config:
   sphere_direction: false
   human_light: false
-apply_acc_loss: true
+apply_occ_loss: true
 apply_std_loss: false
 occ_loss_step: 20000
 is_nerf: false

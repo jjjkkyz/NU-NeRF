@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from dataset.name2dataset import name2dataset
 from network.loss import name2loss
-from network.renderer import name2renderer
+from network.renderer_zerothick import name2renderer
 from train.lr_common_manager import name2lr_manager
 from network.metrics import name2metrics
 from train.train_tools import to_cuda, Logger
@@ -18,7 +18,7 @@ from train.train_valid import ValidationEvaluator
 from utils.dataset_utils import dummy_collate_fn
 from network.field import make_predictor1, get_embedder
 
-class Trainer:
+class Trainer_zero:
     default_cfg = {
         "optimizer_type": 'adam',
         "multi_gpus": False,
@@ -112,14 +112,15 @@ class Trainer:
 
 
     
-
+        # best_para = checkpoint['best_para']
+        # self.network.load_state_dict(checkpoint['network_state_dict'])
         print('========================')
         train_iter = iter(self.train_set)
 
         pbar = tqdm(total=self.cfg['total_step'], bar_format='{r_bar}')
         pbar.update(start_step)
 
-
+       # self.network.color_network.bkgr = self.network.infinity_far_bkgr
         self.optimizer = self.lr_manager.construct_optimizer(Adam, self.network)
 
 
@@ -206,7 +207,7 @@ class Trainer:
             checkpoint = torch.load(self.pth_fn)
             best_para = checkpoint['best_para']
             start_step = checkpoint['step']
-            self.network.load_state_dict(checkpoint['network_state_dict'])
+            self.network.load_state_dict(checkpoint['network_state_dict'], strict=False)
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             print(f'==> resuming from step {start_step} best para {best_para}')
 

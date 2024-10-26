@@ -534,13 +534,13 @@ class CustomDatabase(BaseDatabase):
 
 
 class NeRFSyntheticDatabase(BaseDatabase):
-    def __init__(self, database_name, dataset_dir, testskip=8):
+    def __init__(self, database_name, dataset_dir, testskip=64):
         super().__init__(database_name)
         _, model_name = database_name.split('/')
         RENDER_ROOT = dataset_dir
         # RENDER_ROOT = '/media/data_nix/yzy/Git_Project/data/nerf_synthetic'
         self.root = f'{RENDER_ROOT}/{model_name}'
-        self.scale_factor = 2
+        self.scale_factor = 1.0
         print(self.scale_factor)
         print(self.scale_factor)
         print(self.scale_factor)
@@ -578,8 +578,8 @@ class NeRFSyntheticDatabase(BaseDatabase):
                     masks.append(imageio.imread(fname)[...,0])
 
                 poses.append(np.array(frame['transform_matrix']))
-            imgs = (np.array(imgs) / 255.).astype(np.float32)  # keep all 4 channels (RGBA)
-            masks = (np.array(masks) / 255.).astype(np.float32)[...,0:1]  # [512,512,1]
+            imgs = np.array(imgs) # keep all 4 channels (RGBA)
+            masks = (np.array(masks) / 255.).astype(np.bool)[...,0:1]  # [512,512,1]
             poses = np.array(poses).astype(np.float32)
             counts.append(counts[-1] + imgs.shape[0])
             all_imgs.append(imgs)
@@ -591,7 +591,7 @@ class NeRFSyntheticDatabase(BaseDatabase):
         self.imgs = np.concatenate(all_imgs, 0)
         self.all_masks = np.concatenate(all_masks,0)
         self.poses = np.concatenate(all_poses, 0)
-        self.poses[..., :3, 3] /= 2
+       # self.poses[..., :3, 3] /= 4
 
         self.img_num = self.imgs.shape[0]
         self.img_ids = [str(k) for k in range(self.img_num)]
@@ -608,7 +608,7 @@ class NeRFSyntheticDatabase(BaseDatabase):
 
     def get_image(self, img_id):
         imgs = self.imgs[int(img_id)]
-        return imgs[..., :3] * imgs[..., -1:] + (1 - imgs[..., -1:])
+        return imgs[..., :3] #imgs[..., :3] * imgs[..., -1:] + (1 - imgs[..., -1:])
         # return imread(f'{self.root}/{img_id}.png')[..., :3]
 
     def get_K(self, img_id):

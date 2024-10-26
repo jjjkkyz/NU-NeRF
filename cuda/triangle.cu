@@ -40,7 +40,7 @@ __constant__ Params params;
 
 static __forceinline__ __device__ void setPayload( float p, unsigned int i)
 {
-    optixSetPayload_0( float_as_int(p) );
+    optixSetPayload_0( __float_as_int(p) );
     optixSetPayload_1(i);
 }
 
@@ -74,7 +74,7 @@ extern "C" __global__ void __raygen__rg()
             1,                   // SBT stride   -- See SBT discussion
             0,                   // missSBTIndex -- See SBT discussion
             p0, p1 );
-    result = int_as_float( p0 );
+    result = __int_as_float( p0 );
 
     // Record results in our output raster
     params.hit[idx.y * params.image_width + idx.x] = result;

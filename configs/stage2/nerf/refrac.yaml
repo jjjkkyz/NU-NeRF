@@ -6,7 +6,7 @@ database_name: nerf/no_thickness_bottle_large_city
 shader_config:
   sphere_direction: false
   human_light: false
-apply_acc_loss: true
+apply_occ_loss: true
 occ_loss_step: 20000
 is_nerf: true
 get_mask: false

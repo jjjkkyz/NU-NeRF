@@ -6,7 +6,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import pymesh
 import network.tracing
 import trimesh, trimesh.exchange.export
 from dataset.database import parse_database_name, get_database_split, BaseDatabase
@@ -16,7 +15,7 @@ from utils.base_utils import color_map_forward, downsample_gaussian_blur
 from utils.raw_utils import linear_to_srgb,srgb_to_linear
 from .DiffRender import Ray,Intersection,Scene
 from tqdm import trange
-
+from utils.base_utils import load_cfg
 
 def build_imgs_info(database: BaseDatabase, img_ids, is_nerf=False):
     images = [database.get_image(img_id) for img_id in img_ids]
@@ -25,6 +24,7 @@ def build_imgs_info(database: BaseDatabase, img_ids, is_nerf=False):
 
     images = np.stack(images, 0)
     if is_nerf:
+        images = color_map_forward(images).astype(np.float32)
         masks = [database.get_depth(img_id)[1] for img_id in img_ids]
         masks = np.stack(masks, 0)
     else:
@@ -46,7 +46,10 @@ def build_imgs_info(database: BaseDatabase, img_ids, is_nerf=False):
 
 def imgs_info_to_torch(imgs_info, device='cpu'):
     for k, v in imgs_info.items():
-        v = torch.from_numpy(v)
+        if k.startswith('imgs'):
+            v = torch.from_numpy((v).astype(np.float32))
+        else:
+            v = torch.from_numpy(v)
         if k.startswith('imgs'): v = v.permute(0, 3, 1, 2)
         imgs_info[k] = v.to(device)
     return imgs_info
@@ -430,6 +433,7 @@ class NeROShapeRenderer(nn.Module):
 
         for k in outputs_keys: outputs[k] = torch.cat(outputs[k], 0)
         outputs['loss_rgb'] = self.compute_rgb_loss(outputs['ray_rgb'], ray_batch['rgbs'])
+
         outputs['gt_rgb'] = ray_batch['rgbs'].reshape(h, w, 3)
         outputs['ray_rgb'] = outputs['ray_rgb'].reshape(h, w, 3)
 
@@ -454,8 +458,11 @@ class NeROShapeRenderer(nn.Module):
         outputs = self.render(rays_o, rays_d, near, far, human_poses, -1, self.get_anneal_val(step), is_train=True,
                               step=step, is_nerf=is_nerf)
         outputs['loss_rgb'] = self.compute_rgb_loss(outputs['ray_rgb'], train_ray_batch['rgbs'])  # ray_loss
-        if is_nerf:  # only nerf dataset add loss_mask
-            outputs['loss_mask'] = F.l1_loss(train_ray_batch['masks'], outputs['acc'], reduction='mean')
+        # np.savetxt('ray.txt',outputs['ray_rgb'].detach().cpu().numpy())
+        # np.savetxt('rgbs.txt',train_ray_batch['rgbs'].detach().cpu().numpy())
+        # exit(1)
+        # if is_nerf:  # only nerf dataset add loss_mask
+        #     outputs['loss_mask'] = F.l1_loss(train_ray_batch['masks'], outputs['acc'], reduction='mean')
         return outputs
 
     # def render_step(self, step):
@@ -732,21 +739,21 @@ class NeROShapeRenderer(nn.Module):
         human_poses_pt = human_poses.unsqueeze(-3).expand(batch_size, n_samples, 3, 4)
         dirs = F.normalize(dirs, dim=-1)
         alpha, sampled_color = torch.zeros(batch_size, n_samples), torch.zeros(batch_size, n_samples, 3)
-        bkgr_color = self.infinity_far_bkgr(dirs[:,0:1,:])
-        # if torch.sum(outer_mask) > 0:
-        #     # if is_nerf:
-        #     #     alpha[outer_mask] = torch.zeros_like(alpha[outer_mask])
-        #     #     sampled_color[outer_mask] = torch.zeros_like(sampled_color[outer_mask])
-        #     # else:
-        #    alpha[outer_mask], sampled_color[outer_mask] = self.compute_density_alpha(points[outer_mask],
-        #                                                                                dists[outer_mask],
-        #                                                                                -dirs[outer_mask],
-        #                                                                               self.outer_nerf)
+        #bkgr_color = self.infinity_far_bkgr(dirs[:,0:1,:])
+        if torch.sum(outer_mask) > 0:
+            # if is_nerf:
+            #     alpha[outer_mask] = torch.zeros_like(alpha[outer_mask])
+            #     sampled_color[outer_mask] = torch.zeros_like(sampled_color[outer_mask])
+            # else:
+            alpha[outer_mask], sampled_color[outer_mask] = self.compute_density_alpha(points[outer_mask],
+                                                                                       dists[outer_mask],
+                                                                                       -dirs[outer_mask],
+                                                                                      self.outer_nerf)
         
        # print(inner_mask[:,-1])
        # exit(1)
-        alpha[:,-1] = 1.
-        sampled_color[:,-1:,:] = linear_to_srgb(bkgr_color)
+        #alpha[:,-1] = 1.
+        #sampled_color[:,-1:,:] = linear_to_srgb(bkgr_color)
         alpha_bkgr, color_bkgr = alpha.clone(), sampled_color.clone()
 #
         if torch.sum(inner_mask) > 0:
@@ -922,22 +929,15 @@ class Stage2Renderer(nn.Module):
         self.register_parameter(name="IORs", param=self.IORs)
 
         
-        checkpoint = torch.load(anon)     
-      #  checkpoint = torch.load(anon)  
-        cfg1 = cfg.copy()
-        
-        cfg1['shader_config']['sphere_direction'] = True
-        cfg1['shader_config']['refrac_freq'] = 3
-        self.stage1_network = NeROShapeRenderer(cfg1,training=False)
+        checkpoint = torch.load(cfg['stage1_ckpt_dir'])     
+        cfg_stage1 = load_cfg(cfg['stage1_cfg_dir'])
+        self.stage1_network = NeROShapeRenderer(cfg_stage1,training=False)
        # self.stage1_network.color_network.bkgr = self.stage1_network.infinity_far_bkgr
-        self.stage1_network.load_state_dict(checkpoint['network_state_dict'])
-        self.stage1_network.eval().cuda()
+        self.stage1_network.load_state_dict(checkpoint['network_state_dict'], strict=False)
+        self.stage1_network.cuda()
        # self.infinity_far_bkgr = InfOutNetwork()
-        self.infinity_far_bkgr = self.stage1_network.infinity_far_bkgr
-        #self.mesh = pymesh.meshio.load_mesh(anon, drop_zero_dim=False)
-     #   mesh_path = anon
-        mesh_path = anon
-      #  mesh_path = anon
+        #self.infinity_far_bkgr = self.stage1_network.infinity_far_bkgr
+        mesh_path = cfg['stage1_mesh_dir']
         # self.mesh = pymesh.meshio.load_mesh(mesh_path, drop_zero_dim=False)
         # self.mesh_separated = pymesh.separate_mesh(self.mesh)
         # print(self.mesh_separated)
@@ -952,8 +952,8 @@ class Stage2Renderer(nn.Module):
        # self.deviation_network = SingleVarianceNetwork(init_val=self.cfg['inv_s_init'], activation=self.cfg['std_act'])
 
         # background nerf is a nerf++ model (this is outside the unit bounding sphere, so we call it outer nerf)
-        #self.outer_nerf = NeRFNetwork(D=8, d_in=4, d_in_view=3, W=256, multires=10, multires_view=4, output_ch=4,
-        #                              skips=[4], use_viewdirs=True)
+        self.outer_nerf = NeRFNetwork(D=8, d_in=4, d_in_view=3, W=256, multires=10, multires_view=4, output_ch=4,
+                                     skips=[4], use_viewdirs=True)
        # self.outer_nerf = self.stage1_network.outer_nerf
         #nn.init.constant_(self.outer_nerf.rgb_linear.bias, np.log(0.5))
         
@@ -1593,8 +1593,8 @@ class Stage2Renderer(nn.Module):
         for i in range(3):
            # print(next_start)
            # print(next_dir)
-            #next_start = torch.nan_to_num(next_start, 0.0)
-            #next_dir = F.normalize(torch.nan_to_num(next_dir, 1.0),dim=-1)
+           # next_start = torch.nan_to_num(next_start, 0.0)
+          #  next_dir = F.normalize(torch.nan_to_num(next_dir, 1.0),dim=-1)
            
             tir = torch.ones((next_start.shape[0],1)).cuda().bool().detach()
             rays_for_intersection = Ray(next_start,next_dir)
@@ -2051,346 +2051,7 @@ class Stage2Renderer(nn.Module):
                 'roughness': np.concatenate(roughness, 0),
                 'albedo': np.concatenate(albedo, 0)}
 
-
-class NeROMaterialRenderer(nn.Module):
-    default_cfg = {
-        'train_ray_num': 512,
-        'test_ray_num': 1024,
-
-        'database_name': 'real/bear/raw_1024',
-        'is_nerf': False,
-        'rgb_loss': 'charbonier',
-
-        'mesh': 'data/meshes/bear_shape-300000.ply',
-
-        'shader_cfg': {},
-
-        'reg_mat': True,
-        'reg_diffuse_light': True,
-        'reg_diffuse_light_lambda': 0.1,
-        'fixed_camera': False,
-    }
-
-    def __init__(self, cfg, is_train=True):
-        self.cfg = {**self.default_cfg, **cfg}
-        super().__init__()
-        self.warned_normal = False
-        self.is_nerf = self.cfg['is_nerf']
-        self._init_geometry()
-        self._init_dataset(is_train)
-        self._init_shader()
-
-    def _init_geometry(self):
-        self.mesh = open3d.io.read_triangle_mesh(self.cfg['mesh'])
-        self.ray_tracer = raytracing.RayTracer(np.asarray(self.mesh.vertices), np.asarray(self.mesh.triangles))
-
-    def _init_dataset(self, is_train):
-        # train/test split
-        self.database = parse_database_name(self.cfg['database_name'], self.cfg['dataset_dir'])
-        self.train_ids, self.test_ids = get_database_split(self.database, 'validation')
-        self.train_ids = np.asarray(self.train_ids)
-
-        if is_train:
-            self.train_imgs_info = build_imgs_info(self.database, self.train_ids, self.is_nerf)
-            self.train_imgs_info = imgs_info_to_torch(self.train_imgs_info, 'cpu')
-            self.train_num = len(self.train_ids)
-
-            self.test_imgs_info = build_imgs_info(self.database, self.test_ids, self.is_nerf)
-            self.test_imgs_info = imgs_info_to_torch(self.test_imgs_info, 'cpu')
-            self.test_num = len(self.test_ids)
-
-            self.train_batch = self._construct_nerf_ray_batch(
-                self.train_imgs_info) if self.is_nerf else self._construct_ray_batch(self.train_imgs_info)
-            self.tbn = self.train_batch['rays_o'].shape[0]
-            self._shuffle_train_batch()
-
-    def _init_shader(self):
-        self.cfg['shader_cfg']['is_real'] = self.cfg['database_name'].startswith('real')
-        self.shader_network = MCShadingNetwork(self.cfg['shader_cfg'], lambda o, d: self.trace(o, d))
-
-    def trace_in_batch(self, rays_o, rays_d, batch_size=1024 ** 2, cpu=False):
-        inters, normals, depth, hit_mask = [], [], [], []
-        rn = rays_o.shape[0]
-        for ri in range(0, rn, batch_size):
-            inters_cur, normals_cur, depth_cur, hit_mask_cur = self.trace(rays_o[ri:ri + batch_size],
-                                                                          rays_d[ri:ri + batch_size])
-            if cpu:
-                inters_cur = inters_cur.cpu()
-                normals_cur = normals_cur.cpu()
-                depth_cur = depth_cur.cpu()
-                hit_mask_cur = hit_mask_cur.cpu()
-            inters.append(inters_cur)
-            normals.append(normals_cur)
-            depth.append(depth_cur)
-            hit_mask.append(hit_mask_cur)
-        return torch.cat(inters, 0), torch.cat(normals, 0), torch.cat(depth, 0), torch.cat(hit_mask, 0)
-
-    def trace(self, rays_o, rays_d):
-        inters, normals, depth = self.ray_tracer.trace(rays_o, rays_d)
-        depth = depth.reshape(*depth.shape, 1)
-        normals = -normals
-        normals = F.normalize(normals, dim=-1)
-        if not self.warned_normal:
-            print('warn!!! the normals are flipped in NeuS by default. You may flip the normal according to your mesh!')
-            self.warned_normal = True
-        miss_mask = depth >= 10
-        hit_mask = ~miss_mask
-        return inters, normals, depth, hit_mask
-
-    def _warn_ray_tracing(self, centers):
-        centers = centers.reshape([-1, 3])
-        distance = torch.norm(centers, dim=-1) + 1.0
-        max_dist = torch.max(distance).cpu().numpy()
-        if max_dist > 10.0:
-            print(
-                f'warning!!! the max distance from the camera is {max_dist:.4f}, which is beyond 10.0 for the ray tracer')
-
-    def get_human_coordinate_poses(self, poses):
-        pn = poses.shape[0]
-        cam_cen = (-poses[:, :, :3].permute(0, 2, 1) @ poses[:, :, 3:])[..., 0]  # pn,3
-        if self.cfg['fixed_camera']:
-            pass
-        else:
-            cam_cen[..., 2] = 0
-
-        Y = torch.zeros([1, 3], device='cpu').expand(pn, 3)
-        Y[:, 2] = -1.0
-        Z = torch.clone(poses[:, 2, :3])  # pn, 3
-        Z[:, 2] = 0
-        Z = F.normalize(Z, dim=-1)
-        X = torch.cross(Y, Z)  # pn, 3
-        R = torch.stack([X, Y, Z], 1)  # pn,3,3
-        t = -R @ cam_cen[:, :, None]  # pn,3,1
-        return torch.cat([R, t], -1)
-
-    def _construct_ray_batch(self, imgs_info, device='cpu', is_train=True):
-        imn, _, h, w = imgs_info['imgs'].shape
-        coords = torch.stack(torch.meshgrid(torch.arange(h), torch.arange(w)), -1)[:, :, (1, 0)]  # h,w,2
-        coords = coords.to('cpu')
-        coords = coords.float()[None, :, :, :].repeat(imn, 1, 1, 1)  # imn,h,w,2
-        coords = coords.reshape(imn, h * w, 2)
-        coords = torch.cat([coords + 0.5, torch.ones(imn, h * w, 1, dtype=torch.float32, device='cpu')], 2)  # imn,h*w,3
-
-        # imn,h*w,3 @ imn,3,3 => imn,h*w,3
-        rays_d = coords @ torch.inverse(imgs_info['Ks']).permute(0, 2, 1)
-        poses = imgs_info['poses']  # imn,3,4
-        R, t = poses[:, :, :3], poses[:, :, 3:]
-        rays_d = rays_d @ R
-        rays_d = F.normalize(rays_d, dim=-1)
-        rays_o = -R.permute(0, 2, 1) @ t  # imn,3,3 @ imn,3,1
-        self._warn_ray_tracing(rays_o)
-        rays_o = rays_o.permute(0, 2, 1).repeat(1, h * w, 1)  # imn,h*w,3
-        inters, normals, depth, hit_mask = self.trace_in_batch(rays_o.reshape(-1, 3), rays_d.reshape(-1, 3),
-                                                               cpu=True)  # imn
-        inters, normals, depth, hit_mask = inters.reshape(imn, h * w, 3), normals.reshape(imn, h * w, 3), depth.reshape(
-            imn, h * w, 1), hit_mask.reshape(imn, h * w)
-
-        human_poses = self.get_human_coordinate_poses(poses)  # imn,3,4
-        human_poses = human_poses.unsqueeze(1).repeat(1, h * w, 1, 1)  # imn,h*w,3,4
-        rgb = imgs_info['imgs'].reshape(imn, 3, h * w).permute(0, 2, 1)  # imn,h*w,3
-
-        if is_train:
-            ray_batch = {
-                'rays_o': rays_o[hit_mask].to(device),
-                'rays_d': rays_d[hit_mask].to(device),
-                'inters': inters[hit_mask].to(device),
-                'normals': normals[hit_mask].to(device),
-                'depth': depth[hit_mask].to(device),
-                'human_poses': human_poses[hit_mask].to(device),
-                'rgb': rgb[hit_mask].to(device),
-            }
-        else:
-            assert imn == 1
-            ray_batch = {
-                'rays_o': rays_o[0].to(device),
-                'rays_d': rays_d[0].to(device),
-                'inters': inters[0].to(device),
-                'normals': normals[0].to(device),
-                'depth': depth[0].to(device),
-                'human_poses': human_poses[0].to(device),
-                'rgb': rgb[0].to(device),
-                'hit_mask': hit_mask[0].to(device),
-            }
-        return ray_batch
-
-    def _construct_nerf_ray_batch(self, imgs_info, device='cpu', is_train=True):
-        imn, _, h, w = imgs_info['imgs'].shape
-
-        i, j = torch.meshgrid(torch.linspace(0, w - 1, w),
-                              torch.linspace(0, h - 1, h))  # pytorch's meshgrid has indexing='ij'
-        i = i.t()
-        j = j.t()
-
-        K = imgs_info['Ks'][0]
-        dirs = torch.stack([(i - K[0][2]) / K[0][0], -(j - K[1][2]) / K[1][1], -torch.ones_like(i)], -1)
-
-        imgs = imgs_info['imgs'].permute(0, 2, 3, 1).reshape(imn, h * w, 3)  # imn,h*w,3
-        poses = imgs_info['poses']  # imn,3,4
-        # if is_train:
-        #     masks = imgs_info['masks'].reshape(imn, h * w)
-
-        rays_d = [torch.sum(dirs[..., None, :].cpu() * poses[i, :3, :3], -1) for i in range(imn)]
-        rays_d = torch.stack(rays_d, 0).reshape(imn, h * w, 3)
-        rays_o = [poses[i, :3, -1].expand(rays_d[0].shape) for i in range(imn)]
-        rays_o = torch.stack(rays_o, 0).reshape(imn, h * w, 3)
-        self._warn_ray_tracing(rays_o)
-        inters, normals, depth, hit_mask = self.trace_in_batch(rays_o.reshape(-1, 3), rays_d.reshape(-1, 3),
-                                                               cpu=True)  # imn
-        inters, normals, depth, hit_mask = inters.reshape(imn, h * w, 3), normals.reshape(imn, h * w, 3), depth.reshape(
-            imn, h * w, 1), hit_mask.reshape(imn, h * w)
-        poses = poses.unsqueeze(1).repeat(1, h * w, 1, 1)
-
-        if is_train:
-            ray_batch = {
-                'rays_o': rays_o[hit_mask].to(device),
-                'rays_d': rays_d[hit_mask].to(device),
-                'inters': inters[hit_mask].to(device),
-                'normals': normals[hit_mask].to(device),
-                'depth': depth[hit_mask].to(device),
-                'human_poses': poses[hit_mask].to(device),
-                'rgb': imgs[hit_mask].to(device),
-                # 'dirs': dirs.float().reshape(rn, 3).to(device),
-            }
-        else:
-            assert imn == 1
-            ray_batch = {
-                'rays_o': rays_o[0].to(device),
-                'rays_d': rays_d[0].to(device),
-                'inters': inters[0].to(device),
-                'normals': normals[0].to(device),
-                'depth': depth[0].to(device),
-                'human_poses': poses[0].to(device),
-                'rgb': imgs[0].to(device),
-                'hit_mask': hit_mask[0].to(device),
-            }
-
-        return ray_batch
-        # if is_train:
-        #     ray_batch['masks'] = masks.float().reshape(rn).to(device)
-
-    def _shuffle_train_batch(self):
-        self.train_batch_i = 0
-        shuffle_idxs = torch.randperm(self.tbn, device='cpu')  # shuffle
-        for k, v in self.train_batch.items():
-            self.train_batch[k] = v[shuffle_idxs]
-
-    def shade(self, pts, view_dirs, normals, human_poses, is_train, step=None):
-        rgb_pr, outputs = self.shader_network(pts, view_dirs, normals, human_poses, step, is_train)
-        outputs['rgb_pr'] = rgb_pr
-        return outputs
-
-    def compute_rgb_loss(self, rgb_pr, rgb_gt):
-        if self.cfg['rgb_loss'] == 'l1':
-            rgb_loss = torch.sum(F.l1_loss(rgb_pr, rgb_gt, reduction='none'), -1)
-        elif self.cfg['rgb_loss'] == 'charbonier':
-            epsilon = 0.001
-            rgb_loss = torch.sqrt(torch.sum((rgb_gt - rgb_pr) ** 2, dim=-1) + epsilon)
-        else:
-            raise NotImplementedError
-        return rgb_loss
-
-    def compute_diffuse_light_regularization(self, diffuse_lights):
-        diffuse_white_reg = torch.sum(torch.abs(diffuse_lights - torch.mean(diffuse_lights, dim=-1, keepdim=True)),
-                                      dim=-1)
-        return diffuse_white_reg * self.cfg['reg_diffuse_light_lambda']
-
-    def train_step(self, step):
-        rn = self.cfg['train_ray_num']
-        pts = self.train_batch['inters'][self.train_batch_i:self.train_batch_i + rn].cuda()
-        view_dirs = -self.train_batch['rays_d'][
-                     self.train_batch_i:self.train_batch_i + rn].cuda()  # view directions are opposite to ray directions
-        normals = self.train_batch['normals'][self.train_batch_i:self.train_batch_i + rn].cuda()
-        rgb_gt = self.train_batch['rgb'][self.train_batch_i:self.train_batch_i + rn].cuda()
-        human_poses = self.train_batch['human_poses'][self.train_batch_i:self.train_batch_i + rn].cuda()
-
-        shade_outputs = self.shade(pts, view_dirs, normals, human_poses, True, step)
-        shade_outputs['rgb_gt'] = rgb_gt
-        shade_outputs['loss_rgb'] = self.compute_rgb_loss(shade_outputs['rgb_pr'], shade_outputs['rgb_gt'])
-        if self.cfg['reg_mat']:
-            shade_outputs['loss_mat_reg'] = self.shader_network.material_regularization(
-                pts, normals, shade_outputs['metallic'], shade_outputs['roughness'], shade_outputs['albedo'], step)
-        if self.cfg['reg_diffuse_light']:
-            shade_outputs['loss_diffuse_light'] = self.compute_diffuse_light_regularization(
-                shade_outputs['diffuse_light'])
-
-        self.train_batch_i += rn
-        if self.train_batch_i + rn >= self.tbn: self._shuffle_train_batch()
-        return shade_outputs
-
-    def test_step(self, index):
-        test_imgs_info = imgs_info_slice(self.test_imgs_info, torch.from_numpy(np.asarray([index], np.int64)))
-        _, _, h, w = test_imgs_info['imgs'].shape
-        ray_batch = self._construct_nerf_ray_batch(test_imgs_info, 'cuda',
-                                                   False) if self.is_nerf else self._construct_ray_batch(test_imgs_info,
-                                                                                                         'cuda', False)
-        trn = self.cfg['test_ray_num']
-
-        output_keys = {'rgb_gt': 3, 'rgb_pr': 3, 'specular_light': 3, 'specular_color': 3, 'diffuse_light': 3,
-                       'diffuse_color': 3, 'albedo': 3, 'metallic': 1, 'roughness': 1}
-        outputs = {k: [] for k in output_keys.keys()}
-        rn = ray_batch['rays_o'].shape[0]
-        for ri in range(0, rn, trn):
-            hit_mask = ray_batch['hit_mask'][ri:ri + trn]
-            outputs_cur = {k: torch.zeros(hit_mask.shape[0], d) for k, d in output_keys.items()}
-            if torch.sum(hit_mask) > 0:
-                pts = ray_batch['inters'][ri:ri + trn][hit_mask]
-                view_dirs = -ray_batch['rays_d'][ri:ri + trn][hit_mask]
-                normals = ray_batch['normals'][ri:ri + trn][hit_mask]
-                rgb_gt = ray_batch['rgb'][ri:ri + trn][hit_mask]
-                human_poses = ray_batch['human_poses'][ri:ri + trn][hit_mask]
-
-                shade_outputs = self.shade(pts, view_dirs, normals, human_poses, False)
-
-                outputs_cur['rgb_pr'][hit_mask] = shade_outputs['rgb_pr']
-                outputs_cur['rgb_gt'][hit_mask] = rgb_gt
-                outputs_cur['specular_light'][hit_mask] = shade_outputs['specular_light']
-                outputs_cur['specular_color'][hit_mask] = shade_outputs['specular_color']
-                outputs_cur['diffuse_color'][hit_mask] = shade_outputs['diffuse_color']
-                outputs_cur['diffuse_light'][hit_mask] = shade_outputs['diffuse_light']
-                outputs_cur['albedo'][hit_mask] = shade_outputs['albedo']
-                outputs_cur['metallic'][hit_mask] = shade_outputs['metallic']
-                outputs_cur['roughness'][hit_mask] = torch.sqrt(
-                    shade_outputs['roughness'])  # note: we assume predictions are roughness squared
-
-            for k in output_keys.keys():
-                outputs[k].append(outputs_cur[k])
-
-        for k in output_keys.keys():
-            outputs[k] = torch.cat(outputs[k], 0).reshape(h, w, -1)
-
-        return outputs
-
-    def forward(self, data):
-        torch.set_default_tensor_type('torch.cuda.FloatTensor')
-        is_train = 'eval' not in data
-        step = data['step']
-
-        if is_train:
-            outputs = self.train_step(step)
-        else:
-            index = data['index']
-            outputs = self.test_step(index)
-
-        torch.set_default_tensor_type('torch.FloatTensor')
-        return outputs
-
-    def predict_materials(self, batch_size=8192):
-        verts = torch.from_numpy(np.asarray(self.mesh.vertices, np.float32)).cuda().float()
-        metallic, roughness, albedo = [], [], []
-        for vi in range(0, verts.shape[0], batch_size):
-            m, r, a = self.shader_network.predict_materials(verts[vi:vi + batch_size])
-            r = torch.sqrt(torch.clamp(r, min=1e-7))  # note: we assume predictions are squared roughness!!!
-            metallic.append(m.cpu().numpy())
-            roughness.append(r.cpu().numpy())
-            albedo.append(a.cpu().numpy())
-
-        return {'metallic': np.concatenate(metallic, 0),
-                'roughness': np.concatenate(roughness, 0),
-                'albedo': np.concatenate(albedo, 0)}
-
-
 name2renderer = {
     'shape': NeROShapeRenderer,
     'stage2': Stage2Renderer,
-    'material': NeROMaterialRenderer,
 }

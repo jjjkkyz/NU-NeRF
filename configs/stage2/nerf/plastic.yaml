@@ -3,7 +3,7 @@ name: refrac_s2_plastic_single2
 ####network#####
 network: stage2
 database_name: nerf/no_thickness_bottle_large_city
-apply_acc_loss: true
+apply_occ_loss: true
 occ_loss_step: 20000
 is_nerf: true
 

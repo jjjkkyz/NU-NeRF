@@ -1,4 +1,4 @@
-name: s2_ballstatue_nodiffuse_orig2
+name: ballstatue_s2
 
 ####network#####
 network: stage2
@@ -6,11 +6,12 @@ database_name: custom/ballstatue/1080
 shader_config:
   sphere_direction: true
   human_light: false
-apply_acc_loss: true
+apply_occ_loss: true
 apply_std_loss: false
 occ_loss_step: 20000
 is_nerf: false
 get_mask: true
+zero_thickness: False
 
 ######loss######
 loss: ['eikonal','std','nerf_render']
@@ -21,7 +22,10 @@ freeze_inv_s_step: 15000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: anon
+dataset_dir: ../NUNeRF_data
+stage1_mesh_dir: ./data/meshes/ballstatue3-300000_fixed.ply
+stage1_ckpt_dir: ./data/model/ballstatue3/model_best.pth
+stage1_cfg_dir: ./configs/shape/real/ballstatue.yaml
 train_dataset_cfg:
   database_name: custom/ballstatue/1080
 val_set_list:

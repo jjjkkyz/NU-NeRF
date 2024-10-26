@@ -3,7 +3,7 @@ name: kirsh_2
 ####network#####
 network: stage2
 database_name: nerf/thickbottle_kirsch_final
-apply_acc_loss: true
+apply_occ_loss: true
 shader_config:
   sphere_direction: false
   human_light: false

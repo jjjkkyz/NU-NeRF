@@ -3,7 +3,7 @@ name: ball_0_7_0_68_s21
 ####network#####
 network: stage2
 database_name: nerf/ball_0_7_0_68
-apply_acc_loss: true
+apply_occ_loss: true
 shader_config:
   sphere_direction: false
   human_light: false

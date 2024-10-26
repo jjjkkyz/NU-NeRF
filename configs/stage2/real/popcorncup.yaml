@@ -6,7 +6,7 @@ database_name: custom/popcorncup/1080
 shader_config:
   sphere_direction: true
   human_light: false
-apply_acc_loss: true
+apply_occ_loss: true
 apply_std_loss: true
 occ_loss_step: 20000
 is_nerf: false

@@ -95,7 +95,7 @@ class OccLoss(Loss):
     def __call__(self, data_pr, data_gt, step, *args, **kwargs):
         outputs = {}
         if 'loss_occ' in data_pr:
-            outputs['loss_occ'] = torch.mean(data_pr['loss_occ']).reshape(1) * 0.01
+            outputs['loss_occ'] = torch.mean(data_pr['loss_occ']).reshape(1)
         return outputs
     
 class NormalOrientationLoss(Loss):

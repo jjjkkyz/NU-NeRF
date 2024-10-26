@@ -1,14 +1,19 @@
-name: refrac_s2_glass_single
+name: spherepot_s2
 
 ####network#####
 network: stage2
-database_name: nerf/thickbottle_kirsch_final
+database_name: nerf/spherepot
+shader_config:
+  sphere_direction: false
+  human_light: false
 apply_occ_loss: true
 occ_loss_step: 20000
 is_nerf: true
+get_mask: false
+zero_thickness: True
 
 ######loss######
-loss: ['nerf_render']
+loss: ['eikonal','std','nerf_render']
 val_metric: ['stage2']
 key_metric_name: psnr
 eikonal_weight: 0.02
@@ -16,15 +21,18 @@ freeze_inv_s_step: 5000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: anon
+dataset_dir: ./datasets
+stage1_mesh_dir: ./data/meshes/spherepot2-500000_fixed.ply
+stage1_ckpt_dir: ./data/model/spherepot2/model_best.pth
+stage1_cfg_dir: ./configs/shape/nerf/spherepot.yaml
 train_dataset_cfg:
-  database_name: nerf/thickbottle_kirsch_final
+  database_name: nerf/spherepot
 val_set_list:
   -
     name: val
     type: dummy
     cfg:
-      database_name: nerf/thickbottle_kirsch_final
+      database_name: nerf/spherepot
 
 ####trainier####
 optimizer_type: adam

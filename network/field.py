@@ -558,11 +558,11 @@ class AppShadingNetwork(nn.Module):
     default_cfg = {
         'human_light': False,
         'sphere_direction': False,
-        'light_pos_freq': 8,
+        'light_pos_freq': 6,
         'inner_init': -0.95,
         'roughness_init': 0.0,
         'metallic_init': 0.0,
-        'light_exp_max': 3,
+        'light_exp_max': 5.0,
         'refrac_freq': 6
     }
 
@@ -600,7 +600,7 @@ class AppShadingNetwork(nn.Module):
         # inner lights are indirect lights
         self.inner_light = make_predictor(pos_dim + 72, 3, activation='exp', exp_max=exp_max)
         nn.init.constant_(self.inner_light[-2].bias, np.log(0.5))
-        self.inner_weight = make_predictor(pos_dim + dir_dim, 1, activation='none')
+        self.inner_weight = make_predictor(pos_dim + dir_dim, 1, activation='sigmoid')
         nn.init.constant_(self.inner_weight[-2].bias, self.cfg['inner_init'])
 
         self.transmisstion_weight = make_predictor(feats_dim + 3, 1)
@@ -656,7 +656,7 @@ class AppShadingNetwork(nn.Module):
         indirect_light_0 = self.inner_light(torch.cat([pts, ref_roughness_0], -1))
         ref_ = self.dir_enc(reflective)
         occ_prob = self.inner_weight(torch.cat([pts.detach(), ref_.detach()], -1))  # this is occlusion prob
-        occ_prob = occ_prob * 0.5 + 0.5
+      #  occ_prob = occ_prob * 0.5 + 0.5
         occ_prob_ = torch.clamp(occ_prob, min=0, max=1)
 
         light = indirect_light * occ_prob_ + (human_light * human_weight + direct_light * (1 - human_weight)) * (
@@ -687,24 +687,17 @@ class AppShadingNetwork(nn.Module):
         view_dirs = F.normalize(view_dirs, dim=-1)
         reflective = torch.sum(view_dirs * normals, -1, keepdim=True) * normals * 2 - view_dirs
         NoV = torch.sum(normals * view_dirs, -1, keepdim=True)
-
-        metallic = self.metallic_predictor(torch.cat([feature_vectors, points], -1)) * 0
+        
+        metallic = self.metallic_predictor(torch.cat([feature_vectors, points], -1))
         roughness = self.roughness_predictor(torch.cat([feature_vectors, points], -1)) 
         albedo = self.albedo_predictor(torch.cat([feature_vectors, points], -1))
 
         transmission_weight = self.transmisstion_weight(torch.cat([feature_vectors, points], -1))
 
-      #  ior = self.iors(torch.cat([feature_vectors, points], -1))
-        #print(ior.min())
-        #exit(1)
         # diffuse light
         diffuse_albedo = (1 - metallic) * albedo #/ torch.pi
         diffuse_light = self.predict_diffuse_lights(points, feature_vectors, normals)
         diffuse_color = diffuse_albedo * diffuse_light
-
-        # specular light
-        #transmission_specular = (1-1.45) * (1-1.45) / (1+1.45) / (1+1.45)
-     #   transmission_specular = transmission_specular * transmission_specular
         
         specular_albedo = 0.04 * (1 - metallic) + metallic * albedo
 
@@ -712,26 +705,6 @@ class AppShadingNetwork(nn.Module):
         specular_light, specular_light_0, occ_prob, indirect_light, human_light = self.predict_specular_lights(points, feature_vectors,
                                                                                              reflective, roughness,
                                                                                              human_poses, step)
-        
-
-        # cosThetaI = torch.sum(normals * view_dirs, dim=-1, keepdim=True)
-        # sin2ThetaI = (1 - cosThetaI * cosThetaI).clamp(min = 0)
-        # sin2ThetaT = ior * ior * sin2ThetaI
-        # totalInerR = (sin2ThetaT >= 1).view(-1)
-        # cosThetaT = torch.sqrt(1 - sin2ThetaI.clamp(max = 1))
-        # wt = ior * -view_dirs + (ior * cosThetaI - cosThetaT) * normals
-
-        # wt should be already unit length, Numerical error?
-        # wt = wt / wt.norm(p=2, dim=1, keepdim=True).detach()
-      #  wt = wt / wt.norm(p=2, dim=1, keepdim=True)
-       # print(view_dirs.shape)
-       # print(wt.shape)
-       # exit(1)
-    #     ref_ = self.dir_enc(view_dirs)
-    #    # refr_ = self.dir_enc(wt)
-    #     pts = self.pos_enc(points)
-       # reflection_weight = self.reflec_weight(torch.cat([pts.detach(), ref_.detach()], -1))
-       # reflection_weight = reflection_weight * 0.5 + 0.5
         temp_nov = torch.clamp(1 - NoV, min=0.0, max=1.0)
 
 
@@ -778,7 +751,7 @@ class AppShadingNetwork(nn.Module):
                 'specular_albedo': specular_albedo,
                 'specular_ref': torch.clamp(specular_ref, min=0.0, max=1.0),
                 'specular_light': torch.clamp(linear_to_srgb(specular_light_0), min=0.0, max=1.0),
-                'specular_color': torch.clamp(color, min=0.0, max=1.0) * 0,
+                'specular_color': torch.clamp(specular_color * (1 - transmission_weight) + reflection_weight * specular_light_0 * transmission_weight, min=0.0, max=1.0) ,
 #torch.clamp(specular_color, min=0.0, max=1.0),
 
                 'diffuse_albedo': diffuse_albedo,
@@ -812,11 +785,11 @@ class AppShadingNetwork_S2(nn.Module):
     default_cfg = {
         'human_light': False,
         'sphere_direction': True,
-        'light_pos_freq': 8,
+        'light_pos_freq': 6,
         'inner_init': -0.95,
         'roughness_init': 0.0,
         'metallic_init': 0.0,
-        'light_exp_max': 10.0,
+        'light_exp_max': 5.0,
         'refrac_freq': 6,
     }
 
@@ -841,8 +814,8 @@ class AppShadingNetwork_S2(nn.Module):
         self.dir_enc, dir_dim = get_embedder(6, 3)
         self.pos_enc, pos_dim = get_embedder(self.cfg['light_pos_freq'], 3)
 
-        self.dir_enc1, dir_dim1 = get_embedder(12, 3)
-        self.pos_enc1, pos_dim1 = get_embedder(10, 3)
+       # self.dir_enc1, dir_dim1 = get_embedder(12, 3)
+       # self.pos_enc1, pos_dim1 = get_embedder(10, 3)
 
         self.dir_enc_refrac, dir_dim_refrac = get_embedder(self.cfg['refrac_freq'], 3)
         self.pos_enc_refrac, pos_dim_refrac = get_embedder(self.cfg['refrac_freq'], 3)
@@ -858,7 +831,7 @@ class AppShadingNetwork_S2(nn.Module):
         # inner lights are indirect lights
         self.inner_light = make_predictor(pos_dim + 72, 3, activation='exp', exp_max=exp_max)
         nn.init.constant_(self.inner_light[-2].bias, np.log(0.5))
-        self.inner_weight = make_predictor(pos_dim + dir_dim, 1, activation='none')
+        self.inner_weight = make_predictor(pos_dim + dir_dim, 1, activation='sigmoid')
         nn.init.constant_(self.inner_weight[-2].bias, self.cfg['inner_init'])
 
         self.refrac_weight = make_predictor(feats_dim + 3, 1, activation='sigmoid')
@@ -913,7 +886,7 @@ class AppShadingNetwork_S2(nn.Module):
         indirect_light_0 = self.stage1_network.color_network.inner_light(torch.cat([pts, ref_roughness_0], -1))
         ref_ = self.dir_enc(reflective)
         occ_prob = self.stage1_network.color_network.inner_weight(torch.cat([pts.detach(), ref_.detach()], -1))  # this is occlusion prob
-        occ_prob = occ_prob * 0.5 + 0.5
+       # occ_prob = occ_prob * 0.5 + 0.5
         occ_prob_ = torch.clamp(occ_prob, min=0, max=1)
 
         light = indirect_light * occ_prob_ + direct_light * (
@@ -1035,7 +1008,7 @@ class AppShadingNetwork_S2(nn.Module):
       #  ref1_ = self.dir_enc1(view_dirs)
        # pts1 = self.pos_enc1(points)
         #refraction_light = self.refrac_light1(torch.cat([pts1.detach(), ref1_.detach(),feature_vectors.detach()], -1))
-        refraction_light = self.refrac_light(torch.cat([self.pos_enc_refrac(points), self.dir_enc_refrac(view_dirs)], -1)) 
+        #refraction_light = self.refrac_light(torch.cat([self.pos_enc_refrac(points), self.dir_enc_refrac(view_dirs)], -1)) 
 
         fg_uv = torch.cat([torch.clamp(NoV, min=0.0, max=1.0), torch.clamp(roughness, min=0.0, max=1.0)], -1)
         pn, bn = points.shape[0], 1
@@ -1052,8 +1025,8 @@ class AppShadingNetwork_S2(nn.Module):
         # specular_color_0 = specular_ref_0 * specular_light_0
 
         # integrated together
-        color =  (specular_color) * (1 - transmission_weight) #+ \
-            #* transmission_weight
+        color =  (diffuse_color + specular_color) * (1 - transmission_weight) + \
+        (reflection_weight * specular_light_0  )* transmission_weight
         #print(specular_albedo.shape)
         #print(fg_lookup.shape)
         if is_internal: color = color * 0
@@ -1068,7 +1041,7 @@ class AppShadingNetwork_S2(nn.Module):
             'reflective': reflective,
             'occ_prob': occ_prob,
             'transmission_weight': transmission_weight,
-            'refraction_coefficient': (1 - reflection_weight)# * transmission_weight
+            'refraction_coefficient': (1 - reflection_weight) * transmission_weight
         }
         
         if inter_results:
@@ -1088,7 +1061,7 @@ class AppShadingNetwork_S2(nn.Module):
 
                 'occ_prob': torch.clamp(occ_prob, max=1.0, min=0.0),
                 'indirect_light': indirect_light,
-                'refraction_light': torch.clamp(linear_to_srgb((1 - reflection_weight) * refraction_light * transmission_weight ), min=0.0, max=1.0),
+               # 'refraction_light': torch.clamp(linear_to_srgb((1 - reflection_weight) * refraction_light * transmission_weight ), min=0.0, max=1.0),
                 'reflection_weight': reflection_weight,
             }
            #print(intermediate_results['refraction_light'])
@@ -1256,7 +1229,7 @@ class AppShadingNetwork_DiffuseInner(nn.Module):
         # inner lights are indirect lights
         self.inner_light = make_predictor(pos_dim + 72, 3, activation='exp', exp_max=exp_max)
         nn.init.constant_(self.inner_light[-2].bias, np.log(0.5))
-        self.inner_weight = make_predictor(pos_dim + dir_dim, 1, activation='none')
+        self.inner_weight = make_predictor(pos_dim + dir_dim, 1, activation='sigmoid')
         nn.init.constant_(self.inner_weight[-2].bias, self.cfg['inner_init'])
 
         self.transmisstion_weight = make_predictor(feats_dim + 3, 1)
@@ -1308,7 +1281,7 @@ class AppShadingNetwork_DiffuseInner(nn.Module):
         indirect_light = self.inner_light(torch.cat([pts, ref_roughness], -1))
         ref_ = self.dir_enc(reflective)
         occ_prob = self.inner_weight(torch.cat([pts.detach(), ref_.detach()], -1))  # this is occlusion prob
-        occ_prob = occ_prob * 0.5 + 0.5
+        #occ_prob = occ_prob * 0.5 + 0.5
         occ_prob_ = torch.clamp(occ_prob, min=0, max=1)
 
         light = indirect_light * occ_prob_ + (human_light * human_weight + direct_light * (1 - human_weight)) * (
@@ -1509,7 +1482,7 @@ class AppShadingNetwork_SpecInner(nn.Module):
         indirect_light_0 = self.inner_light(torch.cat([pts, ref_roughness_0], -1))
         ref_ = self.dir_enc(reflective)
         occ_prob = self.inner_weight(torch.cat([pts.detach(), ref_.detach()], -1))  # this is occlusion prob
-        occ_prob = occ_prob * 0.5 + 0.5
+       # occ_prob = occ_prob * 0.5 + 0.5
         occ_prob_ = torch.clamp(occ_prob, min=0, max=1)
 
         light = indirect_light * occ_prob_ + (human_light * human_weight + direct_light * (1 - human_weight)) * (

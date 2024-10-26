@@ -6,7 +6,7 @@ database_name: custom/cylinderbottle/1080
 shader_config:
   sphere_direction: false
   human_light: false
-apply_acc_loss: true
+apply_occ_loss: true
 apply_std_loss: true
 get_mask: true
 occ_loss_step: 20000

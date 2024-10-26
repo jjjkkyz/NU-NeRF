@@ -3,7 +3,7 @@ name: refrac_s2_sphere
 ####network#####
 network: stage2
 database_name: nerf/sphere_pot4
-apply_acc_loss: true
+apply_occ_loss: true
 occ_loss_step: 20000
 is_nerf: true
 

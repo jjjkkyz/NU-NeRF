@@ -1,9 +1,15 @@
 
 
 # NU-NeRF: Neural Reconstruction of Nested Transparent Objects with Uncontrolled Capture Environment
+### ACM Transactions on Graphics(SIGGRAPH Asia 2024)
+
 
 ## Jia-Mu Sun, Tong Wu, Ling-Qi Yan, Lin Gao
-### ACM Transactions on Graphics(SIGGRAPH Asia 2024)
+### Institute of Computing Technology, CAS
+
+### University of Chinese Academy of Sciences
+
+### [KIRI Innovation](https://www.kiriengine.app/)
 ## [Project Page](http://geometrylearning.com/NU-NeRF/) | Paper
 ****
 
@@ -13,9 +19,10 @@
 ```bash
 pip install -r requirements.txt
 ```
-#### Step 2. Install PyMesh
+#### Step 2. Install PyMesh and nvdiffrast and python-optix
 PyMesh currently only support Linux(If you try to install it on Windows, it may get REALLY messy)
 Since PyMesh is not actively maintained now, we use part of @bhacha ‘s fork to solve some problems.
+PLEASE Make sure your default CXX complier is g++-9, otherwise tbb compiling will produce an error.
 ```bash
 git clone https://github.com/bhacha/PyMesh.git
 cd PyMesh
@@ -30,22 +37,58 @@ rm -rf mmg # We need to get a different MMG version to avoid compiling errors
 git clone --depth=1 -b v5.4.3 https://github.com/MmgTools/mmg.git
 
 cd ..
-./setup build
-./setup install
+./setup.py build
+./setup.py install
+
+cd .. 
+git clone https://github.com/NVlabs/nvdiffrast
+cd nvdiffrast
+pip install .
+
+cd ..
+# please install optix 7.6 and cuda from NVIDIA website
+# and fill in the path to them in the following lines
+export OPTIX_PATH=/path/to/optix
+export CUDA_PATH=/path/to/cuda_toolkit
+export OPTIX_EMBED_HEADERS=1 # embed the optix headers into the package
+git clone https://github.com/78ij/python-optix
+cd python-optix
+pip install .
 ```
-### Downloading Datasets 
+### Download our Datasets(a part of the scenes shown in the paper)
 
 We have provided  some synthetic and real datasets used in the paper in [Google Drive](FIXME). 
 
-### Preparing your own dataset
+### -OR- Preparing your own dataset
 
 
-### Fill in config files
-TODO
+### Fill in config files or use the corresponding file for our dataset
+Explanations of some essential entrys in the config files. Most of the config entry should document themselves.
+
+```yaml
+network: shape # set to 'shape' if stage1, 'stage2' if stage2.
+dataset_dir: # fill in the dataset directory. if you have a dataset named 'test' in /foo/bar/test, you should fill '/foo/bar' here.
+database_name: # fill in the dataset folder name and type. Please consult the example configs for the detailed usage. 
+zero_thickness: #whether to use zero thickness configuration. Should be the same in stage1 and stage2.
+shader_config:
+  sphere_direction: false # Whether to apply the sphere direction formulation. If false, only direction is fed into the light predition(i.e. infinity far light)
+  human_light: false # Whether to apply the human light assumption from NeRO. Should be false all the time in our experiments.
+```
 
 ### Run Stage 1 Reconstruction(Example on Spherepot dataset)
 ```bash
 python run_training.py --cfg configs/shape/nerf/spherepot.yaml 
+```
+
+### Extract Outer Geometry mesh for stage1
+```bash
+python extract_mesh_stage1.py --cfg configs/shape/nerf/spherepot.yaml 
+### the extracted result will be located in data/meshes/EXPNAME-step.ply
+```
+
+### Render mask and do erosion on the extracted mask
+```bash
+
 ```
 
 ### Run Stage 2 Reconstruction(Example on Spherepot dataset)
@@ -53,7 +96,18 @@ python run_training.py --cfg configs/shape/nerf/spherepot.yaml
 python run_training.py --cfg configs/stage2/nerf/spherepot.yaml 
 ```
 
+### Extract Outer Geometry mesh for stage2 and do postprocessing
+```bash
+python extract_mesh_stage2.py --cfg configs/stage2/nerf/spherepot.yaml
+
+# please adjust the pathes in inner/outer meshes in postprocess_stage2_mesh.py to your extracted mesh path.
+python postprocess_stage2_mesh.py
+
+```
+
 ### Acknowledgements
+This project is funded by [KIRI Innovation](https://www.kiriengine.app/). A portion of the dataset is also provided by them. 
+
 A large portion of this repo is built upon the code of [NeRO](https://github.com/liuyuan-pal/NeRO). Thank the authors of NeRO for their incredible work!
 
 ### Cite

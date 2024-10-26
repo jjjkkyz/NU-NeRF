@@ -7,7 +7,7 @@ import trimesh
 import torch
 
 script_dir = os.path.dirname(__file__)
-cuda_src = anon
+cuda_src = 'cuda/triangle.cu'
 
 #img_size = (1024, 768)
 
