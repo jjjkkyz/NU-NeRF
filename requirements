@@ -1,0 +1,15 @@
+numpy==1.23
+torch
+tqdm
+open3d
+trimesh==3.12
+scikit-image
+opencv-python
+cupy-cuda12x
+h5py
+plyfile
+transforms3d
+tensorboardx
+pyyaml
+PyMCubes
+matplotlib

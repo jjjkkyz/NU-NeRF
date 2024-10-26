@@ -17,7 +17,7 @@
 ### Setting up environments
 #### Step 1. Install python requirements using pip
 ```bash
-pip install -r requirements.txt
+pip install -r requirements
 ```
 #### Step 2. Install PyMesh and nvdiffrast and python-optix
 PyMesh currently only support Linux(If you try to install it on Windows, it may get REALLY messy)
@@ -57,7 +57,7 @@ pip install .
 ```
 ### Download our Datasets(a part of the scenes shown in the paper)
 
-We have provided  some synthetic and real datasets used in the paper in [Google Drive](FIXME). 
+We have provided  some synthetic and real datasets used in the paper in [Google Drive](https://drive.google.com/drive/folders/1xe4c2io66j1hbLGitXedkOJNCtizZr2V?usp=sharing). 
 
 ### -OR- Preparing your own dataset
 Please consult [the manual for NeRO for now](https://github.com/liuyuan-pal/NeRO/blob/main/custom_object.md).
@@ -97,7 +97,7 @@ python mask_erosion.py --cfg configs/shape/nerf/spherepot.yaml --mesh_path <expo
 python run_training.py --cfg configs/stage2/nerf/spherepot.yaml 
 ```
 
-### Extract Outer Geometry mesh for stage2 and do postprocessing
+### Extract Inner Geometry mesh for stage2 and do postprocessing(OPTIONAL)
 ```bash
 python extract_mesh_stage2.py --cfg configs/stage2/nerf/spherepot.yaml
 
