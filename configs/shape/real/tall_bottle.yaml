@@ -16,7 +16,7 @@ is_nerf: false
 loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','outer_reg']
 val_metric: ['shape_render']
 key_metric_name: psnr
-eikonal_weight: 0.2
+eikonal_weight: 0.1
 freeze_inv_s_step: 15000
 
 ####dataset#####

@@ -386,9 +386,13 @@ class CustomDatabase(BaseDatabase):
         self._parse_colmap()
         self._normalize()
         if not self.max_len.startswith('raw'):
+            if self.max_len.find('crop') != -1:
+                self.max_len = self.max_len.split('_')[0]
+                print('cropping!')
+                self._crop()
             self.max_len = int(self.max_len)
             self.image_dir = ''
-            #self._crop()
+            
         else:
             h, w, _ = imread(f'{self.root}/images/{self.image_names[self.img_ids[0]]}').shape
             max_len = int(self.max_len.split('_')[1])

@@ -2,21 +2,21 @@ name: popcorncup
 
 ####network#####
 network: shape
-database_name: custom/popcorncup/1080
+database_name: custom/popcorncup/1080_crop
 shader_config:
   sphere_direction: true
   human_light: false
 apply_occ_loss: true
-occ_loss_step: 15000
+occ_loss_step: 20000
 get_mask: false
 zero_thickness: False
 is_nerf: false
 
 ######loss######
-loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','outer_reg']
+loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','outer_reg','normal_ori']
 val_metric: ['shape_render']
 key_metric_name: psnr
-eikonal_weight: 0.2
+eikonal_weight: 0.1
 freeze_inv_s_step: 15000
 
 ####dataset#####
