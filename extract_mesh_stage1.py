@@ -42,6 +42,13 @@ def main():
     output_dir.mkdir(exist_ok=True)
     mesh.export(str(output_dir / f'{cfg["name"]}-{step}.ply'))
 
+    # get fixed and simplified version of mesh for stage 2 rendering...(original marching cube mesh may have NaN normal/surfaces and do not have good curvature)
+    import pymeshlab
+    ms = pymeshlab.MeshSet()
+    ms.load_new_mesh(str(output_dir / f'{cfg["name"]}-{step}.ply'))
+    ms.meshing_isotropic_explicit_remeshing(maxsurfdist=pymeshlab.PercentageValue(0.5),targetlen=pymeshlab.PercentageValue(0.5) )
+    ms.save_current_mesh(str(output_dir / f'{cfg["name"]}-{step}_simplified.ply'))
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

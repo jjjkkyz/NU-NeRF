@@ -542,8 +542,6 @@ class NeRFSyntheticDatabase(BaseDatabase):
         self.root = f'{RENDER_ROOT}/{model_name}'
         self.scale_factor = 1.0
         print(self.scale_factor)
-        print(self.scale_factor)
-        print(self.scale_factor)
         splits = ['train', 'test']
         metas = {}
         for s in splits:
@@ -574,13 +572,13 @@ class NeRFSyntheticDatabase(BaseDatabase):
                # fname_mask = fname
                 fname_mask = os.path.join(self.root + '/mask_erosion/' + frame['file_path'] + '.jpg')
                 if os.path.exists(fname_mask):
-                    masks.append(imageio.imread(fname_mask))
+                    masks.append((imageio.imread(fname_mask) / 255.).astype(np.bool)[...,:1])
                 else:
-                    masks.append(imageio.imread(fname)[...,0])
+                    masks.append((imageio.imread(fname) / 255.).astype(np.bool)[...,:1])
 
                 poses.append(np.array(frame['transform_matrix']))
             imgs = np.array(imgs) # keep all 4 channels (RGBA)
-            masks = (np.array(masks) / 255.).astype(np.bool)[...,0:1]  # [512,512,1]
+            #masks = (np.array(masks) / 255.).astype(np.bool)  # [512,512,1]
             poses = np.array(poses).astype(np.float32)
             counts.append(counts[-1] + imgs.shape[0])
             all_imgs.append(imgs)
@@ -662,7 +660,7 @@ def parse_database_name(database_name: str, dataset_dir: str) -> BaseDatabase:
 
 def get_database_split(database: BaseDatabase, split_type='validation'):
     if split_type == 'validation':
-        random.seed(915311)
+        random.seed(100)
         img_ids = database.get_img_ids()
         random.shuffle(img_ids)
         test_ids = img_ids[1:2]

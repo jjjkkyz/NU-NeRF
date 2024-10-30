@@ -1,8 +1,8 @@
-name: ballstatue
+name: tall_bottle
 
 ####network#####
 network: shape
-database_name: custom/ballstatue/1080
+database_name: custom/tall_bottle/1080
 shader_config:
   sphere_direction: true
   human_light: false
@@ -23,19 +23,19 @@ freeze_inv_s_step: 15000
 train_dataset_type: dummy
 dataset_dir: ./datasets
 train_dataset_cfg:
-  database_name: custom/ballstatue/1080
+  database_name: custom/tall_bottle/1080
 val_set_list:
   -
     name: val
     type: dummy
     cfg:
-      database_name: custom/ballstatue/1080
+      database_name: custom/tall_bottle/1080
 
 ####trainier####
 optimizer_type: adam
 lr_type: warm_up_cos
 lr_cfg: {}
-total_step: 300000
+total_step: 200000
 val_interval: 5000
 save_interval: 1000
 train_log_step: 20

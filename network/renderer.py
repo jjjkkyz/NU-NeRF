@@ -28,11 +28,11 @@ def build_imgs_info(database: BaseDatabase, img_ids, is_nerf=False, s2_mask=True
    # print(s2_mask)
     #exit(1)
     images = np.stack(images, 0)
-    if is_nerf:
-        masks = [database.get_mask(img_id) for img_id in img_ids]
+   # if is_nerf:
+   #     masks = [database.get_mask(img_id) for img_id in img_ids]
         #masks = np.stack(masks, 0)
-        images = color_map_forward(images).astype(np.float32)
-    elif s2_mask:
+   #     images = color_map_forward(images).astype(np.float32)
+    if s2_mask:
         masks = [database.get_mask(img_id) for img_id in img_ids]
         images = color_map_forward(images).astype(np.float32)
     else:
@@ -434,7 +434,7 @@ class NeROShapeRenderer(nn.Module):
         outputs_keys += [
             'diffuse_albedo', 'diffuse_light', 'diffuse_color','refraction_light',
             'specular_albedo', 'specular_light', 'specular_color', 'specular_ref',
-            'metallic', 'roughness', 'occ_prob', 'indirect_light', 'occ_prob_gt',
+            'transmission_weight', 'roughness', 'occ_prob', 'indirect_light', 'occ_prob_gt',
         ]
         if self.color_network.cfg['human_light']:
             outputs_keys += ['human_light']
@@ -821,7 +821,7 @@ class NeROShapeRenderer(nn.Module):
             color = color + (1. - acc[..., None])
 
         outputs = {
-            'ray_rgb': color,  # rn,3
+            'ray_rgb': torch.clamp(color,min=0.0,max=1.0),  # rn,3
             'gradient_error': gradient_error,  # rn
             'loss_normal' : normal_ori_loss,
             'acc': acc,  # rn
@@ -848,6 +848,7 @@ class NeROShapeRenderer(nn.Module):
                 outputs['loss_occ'] = torch.zeros(1)
         if torch.sum(inner_mask) > 0:
             outputs['transmission'] = occ_info['transmission_weight']
+            outputs['metallic'] = occ_info['metallic']
         if not is_train:
             outputs.update(self.compute_validation_info(z_vals, rays_o, rays_d, weights, human_poses, step))
             #print(list(outputs.keys()))

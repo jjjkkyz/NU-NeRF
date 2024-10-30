@@ -10,7 +10,7 @@
 ### University of Chinese Academy of Sciences
 
 ### [KIRI Innovation](https://www.kiriengine.app/)
-## [Project Page](http://geometrylearning.com/NU-NeRF/) | Paper
+## [Project Page](http://geometrylearning.com/NU-NeRF/) | [Paper](https://drive.google.com/drive/folders/1DP_aQ5GRow-Se4LpImYLjX3mah2__PSh?usp=sharing) (Our version, not TOG version)
 ****
 
 ## Get Started
@@ -20,6 +20,7 @@
 pip install -r requirements
 ```
 #### Step 2. Install PyMesh and nvdiffrast and python-optix
+In this project, we use PyMesh to calculate the curvature used for non-zero thickness stage 2 reconstruction.
 PyMesh currently only support Linux(If you try to install it on Windows, it may get REALLY messy)
 Since PyMesh is not actively maintained now, we use part of @bhacha ‘s fork to solve some problems.
 PLEASE Make sure your default CXX complier is g++-9, otherwise tbb compiling will produce an error.
@@ -83,7 +84,9 @@ python run_training.py --cfg configs/shape/nerf/spherepot.yaml
 ### Extract Outer Geometry mesh for stage1
 ```bash
 python extract_mesh_stage1.py --cfg configs/shape/nerf/spherepot.yaml 
+### the script will output original MC mesh and a fixed and simplified version of mesh. Please use the simplified version, since original MC mesh may have degenerated normal/surfaces, causing ray tracing to fail, and do not have baed curvature)
 ### the extracted result will be located in data/meshes/EXPNAME-step.ply
+### the simplified version will be located in data/meshes/EXPNAME-step_simplified.ply
 ```
 
 ### Render mask and do erosion on the extracted mask(If you are using non-zero thickness configuration)

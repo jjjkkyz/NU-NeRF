@@ -600,7 +600,7 @@ class AppShadingNetwork(nn.Module):
         # inner lights are indirect lights
         self.inner_light = make_predictor(pos_dim + 72, 3, activation='exp', exp_max=exp_max)
         nn.init.constant_(self.inner_light[-2].bias, np.log(0.5))
-        self.inner_weight = make_predictor(pos_dim + dir_dim, 1, activation='sigmoid')
+        self.inner_weight = make_predictor(pos_dim + dir_dim, 1, activation='none')
         nn.init.constant_(self.inner_weight[-2].bias, self.cfg['inner_init'])
 
         self.transmisstion_weight = make_predictor(feats_dim + 3, 1)
@@ -656,7 +656,7 @@ class AppShadingNetwork(nn.Module):
         indirect_light_0 = self.inner_light(torch.cat([pts, ref_roughness_0], -1))
         ref_ = self.dir_enc(reflective)
         occ_prob = self.inner_weight(torch.cat([pts.detach(), ref_.detach()], -1))  # this is occlusion prob
-      #  occ_prob = occ_prob * 0.5 + 0.5
+        occ_prob = occ_prob * 0.5 + 0.5
         occ_prob_ = torch.clamp(occ_prob, min=0, max=1)
 
         light = indirect_light * occ_prob_ + (human_light * human_weight + direct_light * (1 - human_weight)) * (
@@ -744,6 +744,7 @@ class AppShadingNetwork(nn.Module):
             'reflective': reflective,
             'occ_prob': occ_prob,
             'transmission_weight': transmission_weight,
+            'metallic': metallic,
         }
         
         if inter_results:
@@ -758,7 +759,8 @@ class AppShadingNetwork(nn.Module):
                 'diffuse_light': torch.clamp(linear_to_srgb(diffuse_light), min=0.0, max=1.0),
                 'diffuse_color': torch.clamp(diffuse_color, min=0.0, max=1.0),
 
-                'metallic': transmission_weight,
+                'metallic': metallic,
+                'transmission_weight': transmission_weight,
                 'roughness': roughness,
 
                 'occ_prob': torch.clamp(occ_prob, max=1.0, min=0.0),
@@ -979,36 +981,12 @@ class AppShadingNetwork_S2(nn.Module):
         specular_light, specular_light_0, occ_prob, indirect_light = self.predict_specular_lights(points, feature_vectors,
                                                                                              reflective, roughness,
                                                                                              step)
-        
-
-        # cosThetaI = torch.sum(normals * view_dirs, dim=-1, keepdim=True)
-        # sin2ThetaI = (1 - cosThetaI * cosThetaI).clamp(min = 0)
-        # sin2ThetaT = ior * ior * sin2ThetaI
-        # totalInerR = (sin2ThetaT >= 1).view(-1)
-        # cosThetaT = torch.sqrt(1 - sin2ThetaI.clamp(max = 1))
-        # wt = ior * -view_dirs + (ior * cosThetaI - cosThetaT) * normals
-
-        # wt should be already unit length, Numerical error?
-        # wt = wt / wt.norm(p=2, dim=1, keepdim=True).detach()
-      #  wt = wt / wt.norm(p=2, dim=1, keepdim=True)
-       # print(view_dirs.shape)
-       # print(wt.shape)
-       # exit(1)
-    #     ref_ = self.dir_enc(view_dirs)
-    #    # refr_ = self.dir_enc(wt)
-    #     pts = self.pos_enc(points)
-       # reflection_weight = self.reflec_weight(torch.cat([pts.detach(), ref_.detach()], -1))
-       # reflection_weight = reflection_weight * 0.5 + 0.5
+    
         temp_nov = torch.clamp(1 - NoV, min=0.0, max=1.0)
 
 
         schlick = 0.04 + (1 - 0.04) * temp_nov * temp_nov * temp_nov * temp_nov * temp_nov
         reflection_weight = torch.clamp(schlick, min=0, max=1)
-
-      #  ref1_ = self.dir_enc1(view_dirs)
-       # pts1 = self.pos_enc1(points)
-        #refraction_light = self.refrac_light1(torch.cat([pts1.detach(), ref1_.detach(),feature_vectors.detach()], -1))
-        #refraction_light = self.refrac_light(torch.cat([self.pos_enc_refrac(points), self.dir_enc_refrac(view_dirs)], -1)) 
 
         fg_uv = torch.cat([torch.clamp(NoV, min=0.0, max=1.0), torch.clamp(roughness, min=0.0, max=1.0)], -1)
         pn, bn = points.shape[0], 1
@@ -1049,14 +1027,14 @@ class AppShadingNetwork_S2(nn.Module):
                 'specular_albedo': specular_albedo,
                 'specular_ref': torch.clamp(specular_ref, min=0.0, max=1.0),
                 'specular_light': torch.clamp(linear_to_srgb(specular_light_0), min=0.0, max=1.0),
-                'specular_color': torch.clamp(color, min=0.0, max=1.0) ,
+                'specular_color': torch.clamp(specular_color * (1 - transmission_weight) + reflection_weight * specular_light_0 * transmission_weight, min=0.0, max=1.0) ,
 #torch.clamp(specular_color, min=0.0, max=1.0),
 
                 'diffuse_albedo': diffuse_albedo,
                 'diffuse_light': torch.clamp(linear_to_srgb(diffuse_light), min=0.0, max=1.0),
                 'diffuse_color': torch.clamp(diffuse_color, min=0.0, max=1.0),
 
-                'metallic': transmission_weight,
+                'transmission_weight': transmission_weight,
                 'roughness': roughness,
 
                 'occ_prob': torch.clamp(occ_prob, max=1.0, min=0.0),
@@ -1585,7 +1563,7 @@ class AppShadingNetwork_SpecInner(nn.Module):
 
         # integrated together
         color =(diffuse_color + specular_color) * (1 - transmission_weight) + \
-        (reflection_weight * specular_light_0  + (1 - reflection_weight) * refraction_light  )* transmission_weight * 0
+        (reflection_weight * specular_light_0  + (1 - reflection_weight) * refraction_light  )* transmission_weight 
 
         # gamma correction
         diffuse_color = linear_to_srgb(diffuse_color)
@@ -1611,7 +1589,7 @@ class AppShadingNetwork_SpecInner(nn.Module):
                 'diffuse_light': torch.clamp(linear_to_srgb(diffuse_light), min=0.0, max=1.0),
                 'diffuse_color': torch.clamp(diffuse_color, min=0.0, max=1.0),
 
-                'metallic': transmission_weight,
+                'transmission_weight': transmission_weight,
                 'roughness': roughness,
 
                 'occ_prob': torch.clamp(occ_prob, max=1.0, min=0.0),

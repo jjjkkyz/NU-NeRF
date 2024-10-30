@@ -1,4 +1,4 @@
-name: spherepot2
+name: spherepot
 
 ####network#####
 network: shape
@@ -7,6 +7,7 @@ apply_occ_loss: true
 occ_loss_step: 15000
 is_nerf: true
 zero_thickness: True
+get_mask: False
 
 ######loss######
 loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','mask','outer_reg']
@@ -31,7 +32,7 @@ val_set_list:
 optimizer_type: adam
 lr_type: warm_up_cos
 lr_cfg: {}
-total_step: 500000
+total_step: 200000
 val_interval: 5000
 save_interval: 1000
 train_log_step: 20

@@ -1,39 +1,38 @@
-name: ballstatue_s2
+name: plastic_bottle_s2
 
 ####network#####
 network: stage2
-database_name: custom/ballstatue/1080
+database_name: nerf/plastic_bottle_s2
 shader_config:
-  sphere_direction: true
+  sphere_direction: false
   human_light: false
 apply_occ_loss: true
-apply_std_loss: false
 occ_loss_step: 20000
-is_nerf: false
-get_mask: true
-zero_thickness: False
+is_nerf: true
+get_mask: false
+zero_thickness: True
 
 ######loss######
 loss: ['eikonal','std','nerf_render']
 val_metric: ['stage2']
 key_metric_name: psnr
-eikonal_weight: 0.05
-freeze_inv_s_step: 15000
+eikonal_weight: 0.02
+freeze_inv_s_step: 5000
 
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
-stage1_mesh_dir: ./data/meshes/ballstatue3-300000_fixed.ply
-stage1_ckpt_dir: ./data/model/ballstatue/model_best.pth
-stage1_cfg_dir: ./configs/shape/real/ballstatue.yaml
+stage1_mesh_dir: ./data/meshes/plastic_bottle_s2-500000_simplified.ply
+stage1_ckpt_dir: ./data/model/plastic_bottle_s2/model_best.pth
+stage1_cfg_dir: ./configs/shape/nerf/plastic_bottle_s2.yaml
 train_dataset_cfg:
-  database_name: custom/ballstatue/1080
+  database_name: nerf/plastic_bottle_s2
 val_set_list:
   -
     name: val
     type: dummy
     cfg:
-      database_name: custom/ballstatue/1080
+      database_name: nerf/plastic_bottle_s2
 
 ####trainier####
 optimizer_type: adam

@@ -42,7 +42,7 @@ def draw_materials(data_pr, h, w):
     
     keys = ['diffuse_albedo', 'diffuse_light', 'diffuse_color', 'refraction_light',
             'specular_albedo', 'specular_light', 'specular_color', 'specular_ref',
-            'metallic', 'roughness', 'occ_prob', 'indirect_light']
+            'transmission_weight', 'roughness', 'occ_prob', 'indirect_light']
     results = get_key_images(data_pr, keys, h, w)
     results = [concat_images_list(*results[0:4]), concat_images_list(*results[4:8]), concat_images_list(*results[8:])]
     return results

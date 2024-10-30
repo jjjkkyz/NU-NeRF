@@ -176,6 +176,20 @@ class TransmissionRegLoss(Loss):
         if 'transmission' in data_pr:
             outputs['loss_trans_reg'] = torch.nn.functional.mse_loss(data_pr['transmission'], torch.zeros_like(data_pr['transmission']).cuda())* self.cfg['transmission_reg_loss_weight']
         return outputs
+    
+class MetallicRegLoss(Loss):
+    default_cfg = {
+        'metallic_reg_loss_weight': 0.1,
+    }
+
+    def __init__(self, cfg):
+        self.cfg = {**self.default_cfg, **cfg}
+
+    def __call__(self, data_pr, data_gt, step, *args, **kwargs):
+        outputs = {}
+        if 'metallic' in data_pr:
+            outputs['loss_metal_reg'] = torch.nn.functional.mse_loss(data_pr['metallic'], torch.zeros_like(data_pr['transmission']).cuda())* self.cfg['metallic_reg_loss_weight']
+        return outputs
 
 class OuterRegLoss(Loss):
     default_cfg = {
@@ -192,7 +206,7 @@ class OuterRegLoss(Loss):
         if 'color_bkgr' in data_pr and step >= 15000:
            # print(data_pr['color_bkgr'].shape)
             #print(data_pr['color_spec'].shape)
-            outputs['loss_outer_reg'] = torch.nn.functional.mse_loss(data_pr['color_bkgr'].detach().flatten(),data_pr['color_spec'].flatten()) * self.cfg['outer_reg_loss_weight']
+            outputs['loss_outer_reg'] = torch.nn.functional.mse_loss(data_pr['color_bkgr'].flatten(),data_pr['color_spec'].flatten()) * self.cfg['outer_reg_loss_weight']
             #print(1)
            # print(outputs['loss_outer_reg'])
            # exit(1)
@@ -208,5 +222,6 @@ name2loss = {
     'outer_reg': OuterRegLoss,
     'mat_reg': MaterialRegLoss,
     'transmission_reg': TransmissionRegLoss,
+    'metallic_reg':MetallicRegLoss,
     'normal_ori': NormalOrientationLoss
 }

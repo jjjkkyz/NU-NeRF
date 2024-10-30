@@ -417,7 +417,7 @@ class NeROShapeRenderer(nn.Module):
         outputs_keys += [
             'diffuse_albedo', 'diffuse_light', 'diffuse_color','refraction_light',
             'specular_albedo', 'specular_light', 'specular_color', 'specular_ref',
-            'metallic', 'roughness', 'occ_prob', 'indirect_light', 'occ_prob_gt',
+            'transmission_weight', 'roughness', 'occ_prob', 'indirect_light', 'occ_prob_gt',
         ]
         if self.color_network.cfg['human_light']:
             outputs_keys += ['human_light']
@@ -785,7 +785,7 @@ class NeROShapeRenderer(nn.Module):
             color = color + (1. - acc[..., None])
 
         outputs = {
-            'ray_rgb': color,  # rn,3
+            'ray_rgb': torch.clamp(color,min=0.0,max=1.0),  # rn,3
             'gradient_error': gradient_error,  # rn
             'acc': acc,  # rn
             'color_bkgr': color_bkgr,
@@ -799,6 +799,7 @@ class NeROShapeRenderer(nn.Module):
 
         if torch.sum(inner_mask) > 0:
             outputs['transmission'] = occ_info['transmission_weight']
+            outputs['metallic'] = occ_info['metallic']
             
         if step < 1000:
             mask = torch.norm(points, dim=-1) < 1.2
@@ -970,7 +971,7 @@ class Stage2Renderer(nn.Module):
                                       weight_norm=True, sdf_activation=self.cfg['sdf_activation'])
 
         self.deviation_network_inner = SingleVarianceNetwork(init_val=self.cfg['inv_s_init'], activation=self.cfg['std_act'])
-        self.color_network_inner = AppShadingNetwork_SpecInner(self.cfg['shader_config'])
+        self.color_network_inner = AppShadingNetwork(self.cfg['shader_config'])
       #  self.sdf_inter_fun = lambda x: self.sdf_network.sdf(x)
 
         if training:
@@ -1326,7 +1327,7 @@ class Stage2Renderer(nn.Module):
     def compute_density(self, points):
         points_norm = torch.norm(points, dim=-1, keepdim=True)
         points_norm = torch.clamp(points_norm, min=1e-3)
-        sigma = self.outer_nerf.density(torch.cat([points / points_norm, 1.0 / points_norm], -1))[..., 0]
+        sigma = self.stage1_network.outer_nerf.density(torch.cat([points / points_norm, 1.0 / points_norm], -1))[..., 0]
         return sigma
 
     @staticmethod
@@ -1761,9 +1762,9 @@ class Stage2Renderer(nn.Module):
             if not torch.all(~infinity_bkgr[k]) and k != 1:
                 #z_vals_outside = torch.linspace(1e-3, 1.0 - 1.0 / (64 + 1.0), 64)
                 if k == 0:
-                    z_vals_outside = torch.linspace(0.1, 128.0, 192)
+                    z_vals_outside = torch.linspace(0.1, 64.0, 192)
                 else:
-                    z_vals_outside = torch.linspace(0.1, 128.0, 192)
+                    z_vals_outside = torch.linspace(0.1, 64.0, 192)
                 bkgr_size = torch.sum((infinity_bkgr[k]))
 
                 upsample_out_tmp = start[infinity_bkgr[k].flatten()].reshape(-1,1,3) + directions[k][infinity_bkgr[k].flatten()].reshape(-1,1,3) * z_vals_outside.reshape(-1,192,1)

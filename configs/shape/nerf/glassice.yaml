@@ -1,36 +1,40 @@
-name: tbell_shape
+name: glassice1
 
 ####network#####
 network: shape
-database_name: syn/tbell
+database_name: nerf/glassice
 apply_occ_loss: true
-occ_loss_step: 20000
+occ_loss_step: 15000
+is_nerf: true
+zero_thickness: True
+get_mask: False
 
 ######loss######
-loss: ['nerf_render','eikonal','std','init_sdf_reg','occ']
+loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','mask','outer_reg']
 val_metric: ['shape_render']
 key_metric_name: psnr
-eikonal_weight: 0.1
+eikonal_weight: 0.03
 freeze_inv_s_step: 15000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: your_dataset_dir
+dataset_dir: ./datasets
 train_dataset_cfg:
-  database_name: syn/tbell
+  database_name: nerf/glassice
 val_set_list:
   -
     name: val
     type: dummy
     cfg:
-      database_name: syn/tbell
+      database_name: nerf/glassice
 
 ####trainier####
 optimizer_type: adam
 lr_type: warm_up_cos
 lr_cfg: {}
-total_step: 300000
+total_step: 200000
 val_interval: 5000
 save_interval: 1000
 train_log_step: 20
+
 
