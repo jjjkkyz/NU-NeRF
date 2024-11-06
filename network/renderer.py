@@ -805,11 +805,16 @@ class NeROShapeRenderer(nn.Module):
         dirs_final = dirs_candidate[inner_mask_candidate]
         sph_points = offset_points_to_sphere(points_final)
 
-        sph_points = F.normalize(sph_points + dirs_final * get_sphere_intersection(sph_points, dirs_final), dim=-1)
-        sph_points = self.color_network.sph_enc(sph_points, torch.zeros((sph_points.shape[0],1),device='cuda:0'))
         dir_enc = self.color_network.sph_enc(dirs_final, torch.zeros((dirs_final.shape[0],1),device='cuda:0'))
 
-        color_spec = linear_to_srgb(self.color_network.outer_light(torch.cat([dir_enc, sph_points], -1)))
+        if self.cfg['shader_config']['sphere_direction']:
+            sph_points = F.normalize(sph_points + dirs_final * get_sphere_intersection(sph_points, dirs_final), dim=-1)
+            sph_points = self.color_network.sph_enc(sph_points, torch.zeros((sph_points.shape[0],1),device='cuda:0'))
+            
+            color_spec = linear_to_srgb(self.color_network.outer_light(torch.cat([dir_enc, sph_points], -1)))
+        else:
+            color_spec = linear_to_srgb(self.color_network.outer_light(dir_enc))
+                                        
         color_bkgr = color_bkgr[inner_mask_candidate]
        # print(color_spec.shape)
        # print(color_bkgr.shape)
@@ -2157,9 +2162,11 @@ class Stage2Renderer(nn.Module):
         specular_ref_output = torch.zeros((converges[0].shape[0],3),device='cuda:0').reshape(-1,3)
         colors = []
         outputs = {}
+        gradient_error = torch.zeros(1)
+        std_inner= torch.zeros(1)
        # print(len(pathes))
         for i in range(len(pathes)):
-            gradient_error = torch.zeros(1)
+            
          #   print(current_transmission_portion)
             #[N,M,3]
           #  print(i)
@@ -2234,8 +2241,8 @@ class Stage2Renderer(nn.Module):
                                                                             step=step)
                 alpha_nerf = alpha_nerf.reshape(batch_size, n_samples)
                 sampled_color_nerf = sampled_color_nerf.reshape(batch_size, n_samples,3)
-                gradient_error = (torch.linalg.norm(gradients_inner, ord=2, dim=-1) - 1.0) ** 2
-                outputs['std'] = torch.mean(1 / inv_s_inner)
+                gradient_error  += torch.mean((torch.linalg.norm(gradients_inner, ord=2, dim=-1) - 1.0) ** 2)
+                std_inner += torch.mean(1 / inv_s_inner)
             
             if points_for_neus.nelement() > 0:
                 # print('111')
@@ -2302,6 +2309,7 @@ class Stage2Renderer(nn.Module):
     #    print(normals_output.sum())
         outputs = {
             'ray_rgb': ray_rgb,  # rn,3
+            'std': std_inner,
             'gradient_error': gradient_error,  # rn
             'acc': torch.ones_like(candidate_converges[0],device='cuda:0'),  # rn
             'normal':normals_output,

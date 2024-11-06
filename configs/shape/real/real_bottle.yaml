@@ -1,32 +1,36 @@
-name: monkey
+name: real_bottle
 
 ####network#####
 network: shape
-database_name: nerf/monkey_final
+database_name: custom/real_bottle/720
+shader_config:
+  sphere_direction: false
+  human_light: false
+  refrac_freq: 6
 apply_occ_loss: true
 occ_loss_step: 15000
-is_nerf: true
-zero_thickness: True
-get_mask: False
+get_mask: false
+zero_thickness: False
+is_nerf: false
 
 ######loss######
-loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','mask','outer_reg']
+loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','outer_reg']
 val_metric: ['shape_render']
 key_metric_name: psnr
-eikonal_weight: 0.03
+eikonal_weight: 0.2
 freeze_inv_s_step: 15000
 
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
 train_dataset_cfg:
-  database_name: nerf/monkey_final
+  database_name: custom/real_bottle/720
 val_set_list:
   -
     name: val
     type: dummy
     cfg:
-      database_name: nerf/monkey_final
+      database_name: custom/real_bottle/720
 
 ####trainier####
 optimizer_type: adam
@@ -36,5 +40,4 @@ total_step: 200000
 val_interval: 5000
 save_interval: 1000
 train_log_step: 20
-
 

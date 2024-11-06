@@ -29,9 +29,9 @@ def main():
     checkpoint_stage1 = torch.load(cfg['stage1_ckpt_dir'])     
     cfg_stage1 = load_cfg(cfg['stage1_cfg_dir'])
     if cfg_stage1['zero_thickness']:
-        network_stage1 = name2renderer_zero[cfg_stage1['network']](cfg, training=False)
+        network_stage1 = name2renderer_zero[cfg_stage1['network']](cfg_stage1, training=False)
     else:
-        network_stage1 = name2renderer[cfg_stage1['network']](cfg, training=False)
+        network_stage1 = name2renderer[cfg_stage1['network']](cfg_stage1, training=False)
     network_stage1.load_state_dict(checkpoint_stage1['network_state_dict'], strict=False)
     network_stage1.eval().cuda()
 
