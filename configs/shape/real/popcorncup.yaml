@@ -1,13 +1,14 @@
-name: popcorncup
+name: popcorncup_re
 
 ####network#####
 network: shape
-database_name: custom/popcorncup/1080_crop
+database_name: custom/popcorncup_re/1080
 shader_config:
   sphere_direction: true
   human_light: false
+  refrac_freq: 3
 apply_occ_loss: true
-occ_loss_step: 20000
+occ_loss_step: 15000
 get_mask: false
 zero_thickness: False
 is_nerf: false
@@ -16,20 +17,20 @@ is_nerf: false
 loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','outer_reg','normal_ori']
 val_metric: ['shape_render']
 key_metric_name: psnr
-eikonal_weight: 0.1
+eikonal_weight: 0.2
 freeze_inv_s_step: 15000
 
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
 train_dataset_cfg:
-  database_name: custom/popcorncup/1080
+  database_name: custom/popcorncup_re/1080
 val_set_list:
   -
     name: val
     type: dummy
     cfg:
-      database_name: custom/popcorncup/1080
+      database_name: custom/popcorncup_re/1080
 
 ####trainier####
 optimizer_type: adam

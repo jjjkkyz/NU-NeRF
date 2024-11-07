@@ -804,12 +804,15 @@ class NeROShapeRenderer(nn.Module):
         points_final = points_candidate[inner_mask_candidate]
         dirs_final = dirs_candidate[inner_mask_candidate]
         sph_points = offset_points_to_sphere(points_final)
-
-        sph_points = F.normalize(sph_points + dirs_final * get_sphere_intersection(sph_points, dirs_final), dim=-1)
-        sph_points = self.color_network.sph_enc(sph_points, torch.zeros((sph_points.shape[0],1),device='cuda:0'))
         dir_enc = self.color_network.sph_enc(dirs_final, torch.zeros((dirs_final.shape[0],1),device='cuda:0'))
 
-        color_spec = linear_to_srgb(self.color_network.outer_light(torch.cat([dir_enc, sph_points], -1)))
+        if self.cfg['shader_config']['sphere_direction']:
+            sph_points = F.normalize(sph_points + dirs_final * get_sphere_intersection(sph_points, dirs_final), dim=-1)
+            sph_points = self.color_network.sph_enc(sph_points, torch.zeros((sph_points.shape[0],1),device='cuda:0'))
+            
+            color_spec = linear_to_srgb(self.color_network.outer_light(torch.cat([dir_enc, sph_points], -1)))
+        else:
+            color_spec = linear_to_srgb(self.color_network.outer_light(dir_enc))
         color_bkgr = color_bkgr[inner_mask_candidate]
        # print(color_spec.shape)
        # print(color_bkgr.shape)
