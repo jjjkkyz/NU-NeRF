@@ -18,7 +18,7 @@ def main():
     else:
         network = name2renderer[cfg['network']](cfg, training=False)
     #network.color_network.bkgr = network.infinity_far_bkgr
-    ckpt = torch.load(f'data/model/{cfg["name"]}/model.pth')
+    ckpt = torch.load(f'data/model/{cfg["name"]}/model_best.pth')
     step = ckpt['step']
     network.load_state_dict(ckpt['network_state_dict'], strict=False)
     network.eval().cuda()

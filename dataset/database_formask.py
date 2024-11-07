@@ -398,8 +398,8 @@ class CustomDatabase(BaseDatabase):
             self.poses, self.Ks = poses_new, Ks_new
 
     def get_image(self, img_id):
-       # img = imread(f'{self.root}/images_{self.max_len}/{self.image_names[img_id]}')
-        img = imread(f'{self.root}/images/{self.image_names[img_id]}')
+        img = imread(f'{self.root}/images_{self.max_len}/{self.image_names[img_id]}')
+        #img = imread(f'{self.root}/images/{self.image_names[img_id]}')
         return img
 
     def get_K(self, img_id):

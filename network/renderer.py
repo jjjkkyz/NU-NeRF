@@ -12,7 +12,7 @@ import trimesh, trimesh.exchange.export
 from trimesh.curvature import discrete_gaussian_curvature_measure, discrete_mean_curvature_measure, sphere_ball_intersection
 from dataset.database import parse_database_name, get_database_split, BaseDatabase
 from network.field import SDFNetwork, SingleVarianceNetwork, NeRFNetwork, AppShadingNetwork, get_intersection, \
-    extract_geometry, sample_pdf, AppShadingNetwork_S2, InfOutNetwork, IoRNetwork, ThicknessNetwork
+    extract_geometry, sample_pdf, AppShadingNetwork_S2, InfOutNetwork, IoRNetwork, ThicknessNetwork, AppShadingNetwork_SpecInner
 from utils.base_utils import color_map_forward, downsample_gaussian_blur
 from utils.raw_utils import linear_to_srgb,srgb_to_linear
 from .DiffRender import Ray,Intersection,Scene
@@ -1725,20 +1725,21 @@ class Stage2Renderer(nn.Module):
            # print(bounding_box_index)
            # 1/1.45
             ior_ratio = self.IORs_pred(intersection.reshape(-1,3)).reshape(-1,1)
-            ior_ratio = 1 / 1.45 + 0 * 1 / (ior_ratio * 0.9 + 1.0)
+            ior_ratio = 1 / (ior_ratio * 1.0 + 0.6)
 
-            ior_ratio = torch.clamp(ior_ratio, max= torch.ones_like(ior_ratio,device='cuda:0'))
+            #ior_ratio = torch.clamp(ior_ratio, max= torch.ones_like(ior_ratio,device='cuda:0'))
             #1/1.2
             ior_inner_ratio = self.IoRint_pred(intersection.reshape(-1,3)).reshape(-1,1)
-            ior_inner_ratio = 1 / 1.0001 + 0 *  1 / (ior_inner_ratio * 0.7 + 0.9)
+            # we now assume inner is air.
+            ior_inner_ratio =1 /  1.0001 + 0 * 1 / (ior_inner_ratio * 1.0 + 1.0)
 
             #ior_inner_ratio = 1 / (torch.ones_like(ior_inner_ratio) * 1.5) * 0 + 1 / 1.5
-            ior_inner_ratio = torch.clamp(ior_inner_ratio, max= torch.ones_like(ior_inner_ratio,device='cuda:0'))
+            #ior_inner_ratio = torch.clamp(ior_inner_ratio, max= torch.ones_like(ior_inner_ratio,device='cuda:0'))
             #1.45/1.2
             ior_ratio_anotherside = ior_inner_ratio / ior_ratio
 
             thickness = self.thickness_pred(intersection.reshape(-1,3)).reshape(-1,1)
-            thickness = thickness * 0.06
+            thickness = thickness * 0.01
           #  thickness = torch.ones_like(thickness) * 0.02
          #   ior_ratio = torch.where(bounding_box_index == 9, 1, 1/1.5).reshape(-1,1)
             
