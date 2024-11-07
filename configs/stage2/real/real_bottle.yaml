@@ -1,13 +1,13 @@
-name: popcorncup_all_s2_3
+name: real_bottle_s2
 
 ####network#####
 network: stage2
-database_name: custom/popcorncup_all/1080
+database_name: custom/real_bottle/720
 shader_config:
   sphere_direction: true
   human_light: false
 apply_occ_loss: true
-apply_std_loss: true
+apply_std_loss: false
 occ_loss_step: 20000
 is_nerf: false
 get_mask: true
@@ -23,17 +23,17 @@ freeze_inv_s_step: 15000
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
-stage1_mesh_dir: ./data/meshes/popcorncup_all-95000_simplified.ply
-stage1_ckpt_dir: ./data/model/popcorncup_all/model.pth
-stage1_cfg_dir: ./configs/shape/real/popcorncup.yaml
+stage1_mesh_dir: ./data/meshes/real_bottle-122000_simplified.ply
+stage1_ckpt_dir: ./data/model/real_bottle/model_best.pth
+stage1_cfg_dir: ./configs/shape/real/real_bottle.yaml
 train_dataset_cfg:
-  database_name: custom/popcorncup_all/1080
+  database_name: custom/real_bottle/720
 val_set_list:
   -
     name: val
     type: dummy
     cfg:
-      database_name: custom/popcorncup_all/1080
+      database_name: custom/real_bottle/720
 
 ####trainier####
 optimizer_type: adam

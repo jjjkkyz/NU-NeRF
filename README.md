@@ -13,6 +13,9 @@
 ## [Project Page](http://geometrylearning.com/NU-NeRF/) | [Paper](https://drive.google.com/drive/folders/1DP_aQ5GRow-Se4LpImYLjX3mah2__PSh?usp=sharing) (Our version, not TOG version)
 ****
 
+## Update
+[24/11/07] Release the project.
+
 ## Get Started
 ### Setting up environments
 #### Step 1. Install python requirements using pip
@@ -84,7 +87,7 @@ python run_training.py --cfg configs/shape/nerf/spherepot.yaml
 ### Extract Outer Geometry mesh for stage1
 ```bash
 python extract_mesh_stage1.py --cfg configs/shape/nerf/spherepot.yaml 
-### the script will output original MC mesh and a fixed and simplified version of mesh. Please use the simplified version, since original MC mesh may have degenerated normal/surfaces, causing ray tracing to fail, and do not have baed curvature)
+### the script will output original MC mesh and a fixed and simplified version of mesh. Please use the simplified version for Stage2, since original MC mesh may have degenerated normal/surfaces, causing ray tracing to fail, and do not have reasonable curvature)
 ### the extracted result will be located in data/meshes/EXPNAME-step.ply
 ### the simplified version will be located in data/meshes/EXPNAME-step_simplified.ply
 ```

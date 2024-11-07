@@ -18,7 +18,7 @@ def main():
     else:
         network = name2renderer[cfg['network']](cfg, training=False)
     #network.color_network.bkgr = network.infinity_far_bkgr
-    ckpt = torch.load(f'data/model/{cfg["name"]}/model.pth')
+    ckpt = torch.load(f'data/model/{cfg["name"]}/model_best.pth')
     step = ckpt['step']
     network.load_state_dict(ckpt['network_state_dict'], strict=False)
     network.eval().cuda()
@@ -29,9 +29,9 @@ def main():
     checkpoint_stage1 = torch.load(cfg['stage1_ckpt_dir'])     
     cfg_stage1 = load_cfg(cfg['stage1_cfg_dir'])
     if cfg_stage1['zero_thickness']:
-        network_stage1 = name2renderer_zero[cfg_stage1['network']](cfg, training=False)
+        network_stage1 = name2renderer_zero[cfg_stage1['network']](cfg_stage1, training=False)
     else:
-        network_stage1 = name2renderer[cfg_stage1['network']](cfg, training=False)
+        network_stage1 = name2renderer[cfg_stage1['network']](cfg_stage1, training=False)
     network_stage1.load_state_dict(checkpoint_stage1['network_state_dict'], strict=False)
     network_stage1.eval().cuda()
 

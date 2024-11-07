@@ -413,6 +413,8 @@ class CustomDatabase(BaseDatabase):
     def _parse_colmap(self):
         if Path(f'{self.root}/cache.pkl').exists():
             self.poses, self.Ks, self.image_names, self.img_ids = read_pickle(f'{self.root}/cache.pkl')
+            print(self.image_names)
+            print(len(self.poses))
         else:
             cameras, images, points3d = read_model(f'{self.root}/colmap/sparse/0')
 

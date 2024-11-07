@@ -12,7 +12,7 @@ import trimesh, trimesh.exchange.export
 from trimesh.curvature import discrete_gaussian_curvature_measure, discrete_mean_curvature_measure, sphere_ball_intersection
 from dataset.database import parse_database_name, get_database_split, BaseDatabase
 from network.field import SDFNetwork, SingleVarianceNetwork, NeRFNetwork, AppShadingNetwork, get_intersection, \
-    extract_geometry, sample_pdf, AppShadingNetwork_S2, InfOutNetwork, IoRNetwork, ThicknessNetwork
+    extract_geometry, sample_pdf, AppShadingNetwork_S2, InfOutNetwork, IoRNetwork, ThicknessNetwork, AppShadingNetwork_SpecInner
 from utils.base_utils import color_map_forward, downsample_gaussian_blur
 from utils.raw_utils import linear_to_srgb,srgb_to_linear
 from .DiffRender import Ray,Intersection,Scene
@@ -813,6 +813,7 @@ class NeROShapeRenderer(nn.Module):
             color_spec = linear_to_srgb(self.color_network.outer_light(torch.cat([dir_enc, sph_points], -1)))
         else:
             color_spec = linear_to_srgb(self.color_network.outer_light(dir_enc))
+                                        
         color_bkgr = color_bkgr[inner_mask_candidate]
        # print(color_spec.shape)
        # print(color_bkgr.shape)
@@ -1723,20 +1724,21 @@ class Stage2Renderer(nn.Module):
            # print(bounding_box_index)
            # 1/1.45
             ior_ratio = self.IORs_pred(intersection.reshape(-1,3)).reshape(-1,1)
-            ior_ratio = 1 / 1.45 + 0 * 1 / (ior_ratio * 0.9 + 1.0)
+            ior_ratio = 1 / (ior_ratio * 1.0 + 0.6)
 
-            ior_ratio = torch.clamp(ior_ratio, max= torch.ones_like(ior_ratio,device='cuda:0'))
+            #ior_ratio = torch.clamp(ior_ratio, max= torch.ones_like(ior_ratio,device='cuda:0'))
             #1/1.2
             ior_inner_ratio = self.IoRint_pred(intersection.reshape(-1,3)).reshape(-1,1)
-            ior_inner_ratio = 1 / 1.0001 + 0 *  1 / (ior_inner_ratio * 0.7 + 0.9)
+            # we now assume inner is air.
+            ior_inner_ratio =1 /  1.0001 + 0 * 1 / (ior_inner_ratio * 1.0 + 1.0)
 
             #ior_inner_ratio = 1 / (torch.ones_like(ior_inner_ratio) * 1.5) * 0 + 1 / 1.5
-            ior_inner_ratio = torch.clamp(ior_inner_ratio, max= torch.ones_like(ior_inner_ratio,device='cuda:0'))
+            #ior_inner_ratio = torch.clamp(ior_inner_ratio, max= torch.ones_like(ior_inner_ratio,device='cuda:0'))
             #1.45/1.2
             ior_ratio_anotherside = ior_inner_ratio / ior_ratio
 
             thickness = self.thickness_pred(intersection.reshape(-1,3)).reshape(-1,1)
-            thickness = thickness * 0.06
+            thickness = thickness * 0.01
           #  thickness = torch.ones_like(thickness) * 0.02
          #   ior_ratio = torch.where(bounding_box_index == 9, 1, 1/1.5).reshape(-1,1)
             
@@ -2160,9 +2162,11 @@ class Stage2Renderer(nn.Module):
         specular_ref_output = torch.zeros((converges[0].shape[0],3),device='cuda:0').reshape(-1,3)
         colors = []
         outputs = {}
+        gradient_error = torch.zeros(1)
+        std_inner= torch.zeros(1)
        # print(len(pathes))
         for i in range(len(pathes)):
-            gradient_error = torch.zeros(1)
+            
          #   print(current_transmission_portion)
             #[N,M,3]
           #  print(i)
@@ -2237,8 +2241,8 @@ class Stage2Renderer(nn.Module):
                                                                             step=step)
                 alpha_nerf = alpha_nerf.reshape(batch_size, n_samples)
                 sampled_color_nerf = sampled_color_nerf.reshape(batch_size, n_samples,3)
-                gradient_error = (torch.linalg.norm(gradients_inner, ord=2, dim=-1) - 1.0) ** 2
-                outputs['std'] = torch.mean(1 / inv_s_inner)
+                gradient_error  += torch.mean((torch.linalg.norm(gradients_inner, ord=2, dim=-1) - 1.0) ** 2)
+                std_inner += torch.mean(1 / inv_s_inner)
             
             if points_for_neus.nelement() > 0:
                 # print('111')
@@ -2305,6 +2309,7 @@ class Stage2Renderer(nn.Module):
     #    print(normals_output.sum())
         outputs = {
             'ray_rgb': ray_rgb,  # rn,3
+            'std': std_inner,
             'gradient_error': gradient_error,  # rn
             'acc': torch.ones_like(candidate_converges[0],device='cuda:0'),  # rn
             'normal':normals_output,

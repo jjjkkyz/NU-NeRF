@@ -1986,12 +1986,12 @@ class Stage2Renderer(nn.Module):
             
         }
 
-        if torch.sum(inner_mask) > 0 and outputs_tmp.__contains__('std'):
+        if  outputs_tmp.__contains__('std'):
             outputs['std'] = outputs_tmp['std']
         else:
             outputs['std'] = torch.zeros(1)
 
-        if torch.sum(inner_mask) > 0 and outputs_tmp.__contains__('gradient_error'):
+        if  outputs_tmp.__contains__('gradient_error'):
             outputs['gradient_error'] = outputs_tmp['gradient_error']
         else:
             outputs['gradient_error'] = torch.zeros(1)
