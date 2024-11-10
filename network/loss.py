@@ -193,7 +193,7 @@ class MetallicRegLoss(Loss):
 
 class OuterRegLoss(Loss):
     default_cfg = {
-        'outer_reg_loss_weight': 0.1,
+        'outer_reg_loss_weight': 0.5,
     }
 
     def __init__(self, cfg):

@@ -1,4 +1,4 @@
-name: popcorncup_all_s2_3
+name: popcorncup_all_s2_5
 
 ####network#####
 network: stage2
@@ -7,15 +7,15 @@ shader_config:
   sphere_direction: true
   human_light: false
 apply_occ_loss: true
-apply_std_loss: true
-occ_loss_step: 20000
+apply_std_loss: false
+occ_loss_step: 15000
 is_nerf: false
 get_mask: true
 zero_thickness: False
 
 ######loss######
-loss: ['eikonal','std','nerf_render']
-val_metric: ['stage2']
+loss: ['eikonal','nerf_render', 'std', 'occ']
+val_metric: [ 'stage2']
 key_metric_name: psnr
 eikonal_weight: 0.05
 freeze_inv_s_step: 15000
@@ -23,7 +23,7 @@ freeze_inv_s_step: 15000
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
-stage1_mesh_dir: ./data/meshes/popcorncup_all-95000_simplified.ply
+stage1_mesh_dir: ./data/meshes/popcorncup_all_2-76000_simplified.ply
 stage1_ckpt_dir: ./data/model/popcorncup_all/model.pth
 stage1_cfg_dir: ./configs/shape/real/popcorncup.yaml
 train_dataset_cfg:

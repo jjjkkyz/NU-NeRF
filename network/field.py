@@ -801,47 +801,6 @@ class AppShadingNetwork_S2(nn.Module):
         feats_dim = 256
         self.stage1_network = stage1
         # material MLPs
-        self.metallic_predictor = make_predictor(feats_dim + 3, 1)
-        if self.cfg['metallic_init'] != 0:
-            nn.init.constant_(self.metallic_predictor[-2].bias, self.cfg['metallic_init'])
-        self.roughness_predictor = make_predictor(feats_dim + 3, 1)
-        if self.cfg['roughness_init'] != 0:
-            nn.init.constant_(self.roughness_predictor[-2].bias, self.cfg['roughness_init'])
-        self.albedo_predictor = make_predictor(feats_dim + 3, 3)
-
-        FG_LUT = torch.from_numpy(np.fromfile('assets/bsdf_256_256.bin', dtype=np.float32).reshape(1, 256, 256, 2))
-        self.register_buffer('FG_LUT', FG_LUT)
-
-        self.sph_enc = generate_ide_fn(5)
-        self.dir_enc, dir_dim = get_embedder(6, 3)
-        self.pos_enc, pos_dim = get_embedder(self.cfg['light_pos_freq'], 3)
-
-       # self.dir_enc1, dir_dim1 = get_embedder(12, 3)
-       # self.pos_enc1, pos_dim1 = get_embedder(10, 3)
-
-        self.dir_enc_refrac, dir_dim_refrac = get_embedder(self.cfg['refrac_freq'], 3)
-        self.pos_enc_refrac, pos_dim_refrac = get_embedder(self.cfg['refrac_freq'], 3)
-
-        exp_max = self.cfg['light_exp_max']
-        # outer lights are direct lights
-        if self.cfg['sphere_direction']:
-            self.outer_light = make_predictor(72 * 2, 3, activation='exp', exp_max=exp_max)
-        else:
-            self.outer_light = make_predictor(72, 3, activation='exp', exp_max=exp_max)
-        nn.init.constant_(self.outer_light[-2].bias, np.log(0.5))
-
-        # inner lights are indirect lights
-        self.inner_light = make_predictor(pos_dim + 72, 3, activation='exp', exp_max=exp_max)
-        nn.init.constant_(self.inner_light[-2].bias, np.log(0.5))
-        self.inner_weight = make_predictor(pos_dim + dir_dim, 1, activation='sigmoid')
-        nn.init.constant_(self.inner_weight[-2].bias, self.cfg['inner_init'])
-
-        self.refrac_weight = make_predictor(feats_dim + 3, 1, activation='sigmoid')
-     #   nn.init.constant_(self.refrac_weight[-2].bias, self.cfg['inner_init'])
-        self.transmisstion_weight = make_predictor(feats_dim + 3, 1)
-        self.refrac_light = make_predictor(pos_dim_refrac + dir_dim_refrac, 3, activation='exp', exp_max=exp_max)
-        nn.init.constant_(self.refrac_light[-2].bias, np.log(0.5))
-
         # human lights are the lights reflected from the photo capturer
         if self.cfg['human_light']:
             self.human_light_predictor = make_predictor(2 * 2 * 6, 4, activation='exp')
@@ -868,13 +827,13 @@ class AppShadingNetwork_S2(nn.Module):
 
     def predict_specular_lights(self, points, feature_vectors, reflective, roughness, step):
         human_light, human_weight = 0, 0
-        ref_roughness_0 = self.sph_enc(reflective, torch.zeros_like(roughness,device='cuda:0'))
-        ref_roughness = self.sph_enc(reflective, roughness)
-        pts = self.pos_enc(points)
+        ref_roughness_0 = self.stage1_network.color_network.sph_enc(reflective, torch.zeros_like(roughness,device='cuda:0'))
+        ref_roughness = self.stage1_network.color_network.sph_enc(reflective, roughness)
+        pts = self.stage1_network.color_network.pos_enc(points)
         if self.cfg['sphere_direction']:
             sph_points = offset_points_to_sphere(points)
             sph_points = F.normalize(sph_points + reflective * get_sphere_intersection(sph_points, reflective), dim=-1)
-            sph_points = self.sph_enc(sph_points, roughness)
+            sph_points = self.stage1_network.color_network.sph_enc(sph_points, roughness)
             direct_light = self.stage1_network.color_network.outer_light(torch.cat([ref_roughness, sph_points], -1))
             direct_light_0 = self.stage1_network.color_network.outer_light(torch.cat([ref_roughness_0, sph_points], -1))
         else:
@@ -886,7 +845,7 @@ class AppShadingNetwork_S2(nn.Module):
 
         indirect_light = self.stage1_network.color_network.inner_light(torch.cat([pts, ref_roughness], -1))
         indirect_light_0 = self.stage1_network.color_network.inner_light(torch.cat([pts, ref_roughness_0], -1))
-        ref_ = self.dir_enc(reflective)
+        ref_ = self.stage1_network.color_network.dir_enc(reflective)
         occ_prob = self.stage1_network.color_network.inner_weight(torch.cat([pts.detach(), ref_.detach()], -1))  # this is occlusion prob
        # occ_prob = occ_prob * 0.5 + 0.5
         occ_prob_ = torch.clamp(occ_prob, min=0, max=1)
@@ -934,14 +893,14 @@ class AppShadingNetwork_S2(nn.Module):
     def predict_diffuse_lights(self, points, feature_vectors, normals):
        # print(normals.shape)
         roughness = torch.ones([normals.shape[0],1, 1])
-        ref = self.sph_enc(normals, roughness)  # von Mises-Fisher distribution
+        ref = self.stage1_network.color_network.sph_enc(normals, roughness)  # von Mises-Fisher distribution
       #  print(normals.shape)
        # print(roughness.shape)
        # print(ref.shape)
         if self.cfg['sphere_direction']:
             sph_points = offset_points_to_sphere(points)
             sph_points = F.normalize(sph_points + normals * get_sphere_intersection(sph_points, normals), dim=-1)
-            sph_points = self.sph_enc(sph_points, roughness)
+            sph_points = self.stage1_network.color_network.sph_enc(sph_points, roughness)
             light = self.stage1_network.color_network.outer_light(torch.cat([ref, sph_points], -1))
         else:
             light = self.stage1_network.color_network.outer_light(ref)
@@ -990,7 +949,7 @@ class AppShadingNetwork_S2(nn.Module):
 
         fg_uv = torch.cat([torch.clamp(NoV, min=0.0, max=1.0), torch.clamp(roughness, min=0.0, max=1.0)], -1)
         pn, bn = points.shape[0], 1
-        fg_lookup = dr.texture(self.FG_LUT, fg_uv.reshape(1, pn // bn, bn, -1).contiguous(), filter_mode='linear',
+        fg_lookup = dr.texture(self.stage1_network.color_network.FG_LUT, fg_uv.reshape(1, pn // bn, bn, -1).contiguous(), filter_mode='linear',
                                boundary_mode='clamp').reshape(pn, 2)
         specular_ref = (specular_albedo * fg_lookup[:, None, 0:1] + fg_lookup[:, None, 1:2])
         specular_color = specular_ref * specular_light

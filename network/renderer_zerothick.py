@@ -1943,7 +1943,7 @@ class Stage2Renderer(nn.Module):
                     specular_ref_output[converges[i].flatten()] = intermediate_results['specular_ref'].reshape(-1,3)
 
            #
-           # sampled_color_nerf = srgb_to_linear(sampled_color_nerf)
+            sampled_color_nerf = srgb_to_linear(sampled_color_nerf)
             weights_nerf = alpha_nerf * torch.cumprod(torch.cat([torch.ones([batch_size, 1]), 1. - alpha_nerf + 1e-7], -1), -1)[:, :-1]
             color_nerf = (sampled_color_nerf * weights_nerf[..., None]).sum(dim=1)
             acc_nerf = torch.sum(weights_nerf, -1)
@@ -1958,7 +1958,9 @@ class Stage2Renderer(nn.Module):
            
             if points_for_neus.nelement() > 0:
                 color_neus = sampled_color_sdf[:,0,:]
-               
+
+                color_neus = srgb_to_linear(color_neus)
+
                 color_now[converges[i].flatten()] += color_neus * current_transmission_portion[converges[i].flatten()]
                
                 current_transmission_portion = current_transmission_portion[converges[i].flatten()] * occ_info['refraction_coefficient'][:,0,:]

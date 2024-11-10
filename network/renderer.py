@@ -979,8 +979,9 @@ class Stage2Renderer(nn.Module):
         # for key in layers_to_remove:
         #     del checkpoint['network_state_dict'][key]
         
-        self.stage1_network.load_state_dict(checkpoint['network_state_dict'],strict=False)
+        self.stage1_network.load_state_dict(checkpoint['network_state_dict'])
         self.stage1_network.cuda()
+        self.stage1_network.eval()
        # self.infinity_far_bkgr = InfOutNetwork()
         self.infinity_far_bkgr = self.stage1_network.infinity_far_bkgr
         #self.mesh = pymesh.meshio.load_mesh(anon, drop_zero_dim=False)
@@ -998,9 +999,9 @@ class Stage2Renderer(nn.Module):
         self.IORs_pred = IoRNetwork()
         self.IoRint_pred = IoRNetwork()
         self.thickness_pred = ThicknessNetwork()
-        self.outer_nerf = NeRFNetwork(D=8, d_in=4, d_in_view=3, W=256, multires=10, multires_view=4, output_ch=4,
-                                      skips=[4], use_viewdirs=True)
-        nn.init.constant_(self.outer_nerf.rgb_linear.bias, np.log(0.5))
+       # self.outer_nerf = NeRFNetwork(D=8, d_in=4, d_in_view=3, W=256, multires=10, multires_view=4, output_ch=4,
+       #                               skips=[4], use_viewdirs=True)
+        #nn.init.constant_(self.outer_nerf.rgb_linear.bias, np.log(0.5))
        # self.deviation_network = SingleVarianceNetwork(init_val=self.cfg['inv_s_init'], activation=self.cfg['std_act'])
 
         # background nerf is a nerf++ model (this is outside the unit bounding sphere, so we call it outer nerf)
@@ -1021,7 +1022,7 @@ class Stage2Renderer(nn.Module):
 
         self.deviation_network_inner = SingleVarianceNetwork(init_val=self.cfg['inv_s_init'], activation=self.cfg['std_act'])
         self.color_network_inner = AppShadingNetwork(self.cfg['shader_config'])
-      #  self.sdf_inter_fun = lambda x: self.sdf_network.sdf(x)
+        self.sdf_inter_fun = lambda x: self.sdf_network_inner.sdf(x)
 
         if training:
             self._init_dataset()
@@ -1382,7 +1383,7 @@ class Stage2Renderer(nn.Module):
     def compute_density(self, points):
         points_norm = torch.norm(points, dim=-1, keepdim=True)
         points_norm = torch.clamp(points_norm, min=1e-3)
-        sigma = self.outer_nerf.density(torch.cat([points / points_norm, 1.0 / points_norm], -1))[..., 0]
+        sigma = self.stage1_network.outer_nerf.density(torch.cat([points / points_norm, 1.0 / points_norm], -1))[..., 0]
         return sigma
 
     @staticmethod
@@ -1598,7 +1599,7 @@ class Stage2Renderer(nn.Module):
             mask = mask_new
 
         if torch.sum(mask) > 0:
-            inter_dist, inter_prob, inter_sdf = get_intersection(self.sdf_inter_fun, self.deviation_network,
+            inter_dist, inter_prob, inter_sdf = get_intersection(self.sdf_inter_fun, self.deviation_network_inner,
                                                                  points[mask], reflective[mask], sn0=64,
                                                                  sn1=16)  # pn,sn-1
             occ_prob_gt = torch.sum(inter_prob, -1, keepdim=True)
@@ -2164,6 +2165,7 @@ class Stage2Renderer(nn.Module):
         outputs = {}
         gradient_error = torch.zeros(1)
         std_inner= torch.zeros(1)
+        loss_occ = torch.zeros(1)
        # print(len(pathes))
         for i in range(len(pathes)):
             
@@ -2206,7 +2208,7 @@ class Stage2Renderer(nn.Module):
                 alpha_nerf[outer_mask], sampled_color_nerf[outer_mask] = self.compute_density_alpha(points_for_nerf[outer_mask],
                                                                                       dists[outer_mask],
                                                                                       -dirs[outer_mask],
-                                                                                      self.outer_nerf)
+                                                                                      self.stage1_network.outer_nerf)
             # if i == 0:
             #     pc = trimesh.PointCloud(vertices = points_for_nerf.reshape(-1,3).detach().cpu().numpy())
             #     trimesh.exchange.export.export_mesh(pc,'outer0.ply')
@@ -2217,12 +2219,15 @@ class Stage2Renderer(nn.Module):
             #     pc = trimesh.PointCloud(vertices = points_for_nerf.reshape(-1,3).detach().cpu().numpy())
             #     trimesh.exchange.export.export_mesh(pc,'outer2.ply')
             if i == 1:
-                alpha_nerf[inner_mask], gradients_inner, feature_vector, inv_s_inner, sdf = self.compute_sdf_alpha(points_for_nerf[inner_mask],
+                alpha_nerf[inner_mask], gradients_inner, feature_vector, inv_s_inner, sdf_inner = self.compute_sdf_alpha(points_for_nerf[inner_mask],
                                                                                                 dists[inner_mask],
                                                                                                 dirs[inner_mask],
                                                                                                 cos_anneal_ratio, step)
                 
                 human_poses_pre = torch.zeros((batch_size, n_samples, 3, 4),device='cuda:0')
+
+                
+
                 # print(points_for_nerf.shape)
                 # print(gradients.shape)
                 # print(dirs.shape)
@@ -2236,9 +2241,18 @@ class Stage2Renderer(nn.Module):
                
                 #print(points_for_nerf[inner_mask].shape)
                 if points_for_nerf[inner_mask].numel() > 0:
-                    sampled_color_nerf[inner_mask], occ_info = self.color_network_inner(points_for_nerf[inner_mask], gradients_inner, -dirs[inner_mask],
+                    sampled_color_nerf[inner_mask], occ_info_inner = self.color_network_inner(points_for_nerf[inner_mask], gradients_inner, -dirs[inner_mask],
                                                                             feature_vector,human_poses_pre[inner_mask],
                                                                             step=step)
+                if self.cfg['apply_occ_loss']:
+                    # occlusion loss
+                    if torch.sum(inner_mask) > 0 and points_for_nerf[inner_mask].numel() > 0:
+                        loss_occ = self.compute_occ_loss(occ_info_inner, points_for_nerf[inner_mask], sdf_inner, gradients_inner,
+                                                                    dirs[inner_mask], step)
+                    else:
+                        loss_occ = torch.zeros(1)
+                else:
+                    loss_occ = torch.zeros(1)
                 alpha_nerf = alpha_nerf.reshape(batch_size, n_samples)
                 sampled_color_nerf = sampled_color_nerf.reshape(batch_size, n_samples,3)
                 gradient_error  += torch.mean((torch.linalg.norm(gradients_inner, ord=2, dim=-1) - 1.0) ** 2)
@@ -2290,6 +2304,7 @@ class Stage2Renderer(nn.Module):
            
             if points_for_neus.nelement() > 0:
                 color_neus = sampled_color_sdf[:,0,:]
+                color_neus = srgb_to_linear(color_neus)
                
                 color_now[converges[i].flatten()] += color_neus * current_transmission_portion[converges[i].flatten()]
                
@@ -2308,6 +2323,7 @@ class Stage2Renderer(nn.Module):
        # print()
     #    print(normals_output.sum())
         outputs = {
+            'loss_occ': loss_occ,
             'ray_rgb': ray_rgb,  # rn,3
             'std': std_inner,
             'gradient_error': gradient_error,  # rn

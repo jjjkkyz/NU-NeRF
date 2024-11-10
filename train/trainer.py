@@ -160,10 +160,13 @@ class Trainer:
                     loss = loss + torch.mean(v)
 
             loss.backward()
-            # for name, param in self.network.named_parameters():
-            #     if name.find('refrac_light1') == -1 and name.find('bkgr') == -1:# and name.find('sdf') == -1:
-            #         if param.grad is not None:
-            #             param.grad.zero_()
+            for name, param in self.network.named_parameters():
+                if name.find('stage1_network') != -1 and name.find('outer_nerf') == -1:
+                 #   print(name)
+                    if param.grad is not None:
+                        param.grad *= 0.001 #.zero_()
+                #else:
+                 #   print(name + '!!!!')
            #print(self.network.color_network.refrac_light1[0].grad)
             #exit(1)
             self.optimizer.step()
@@ -206,7 +209,7 @@ class Trainer:
             checkpoint = torch.load(self.pth_fn)
             best_para = checkpoint['best_para']
             start_step = checkpoint['step']
-            self.network.load_state_dict(checkpoint['network_state_dict'])
+            self.network.load_state_dict(checkpoint['network_state_dict'],strict=False)
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             print(f'==> resuming from step {start_step} best para {best_para}')
 

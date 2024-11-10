@@ -14,7 +14,7 @@
 ****
 
 ## Update
-[24/11/07] Release the project.
+[24.11] Release the project.
 
 ## Get Started
 ### Setting up environments

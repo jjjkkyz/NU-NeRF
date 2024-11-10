@@ -6,7 +6,10 @@ import argparse
 from utils.base_utils import load_cfg
 parser = argparse.ArgumentParser()
 parser.add_argument('--cfg', type=str)
+parser.add_argument('--erosion', type=int, default=15)
 flags = parser.parse_args()
+erosion_pixels = flags.erosion
+
 cfg =load_cfg(flags.cfg)
 
 if cfg['is_nerf']:
@@ -28,5 +31,5 @@ for img in imgs:
     img_data_orig = cv.imread(mask_path+ '/' + img)
     img_data_orig = img_data_orig.max() - img_data_orig
     img_data = cv.imread(mask_path+ '/' + img)
-    img_data = cv.erode(img_data,np.ones((20, 20), np.uint8) ,cv.BORDER_REFLECT)
+    img_data = cv.erode(img_data,np.ones((erosion_pixels, erosion_pixels), np.uint8) ,cv.BORDER_REFLECT)
     cv.imwrite(mask_erosion_path+'/'+img,img_data + img_data_orig)
