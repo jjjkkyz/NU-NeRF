@@ -1325,8 +1325,8 @@ class AppShadingNetwork_SpecInner(nn.Module):
         'inner_init': -0.95,
         'roughness_init': 0.0,
         'metallic_init': 0.0,
-        'light_exp_max': 10.0,
-        'refrac_freq': 6
+        'light_exp_max': 5.0,
+        'refrac_freq': 2
     }
 
     def __init__(self, cfg):
@@ -1370,7 +1370,7 @@ class AppShadingNetwork_SpecInner(nn.Module):
        # nn.init.constant_(self.reflec_weight[-2].bias, self.cfg['inner_init'])
         self.iors = make_predictor(feats_dim + 3, 1)
 
-        self.refrac_light = make_predictor(pos_dim_refrac + dir_dim_refrac , 3,activation='exp', exp_max=exp_max)
+        self.refrac_light = make_predictor(pos_dim_refrac + dir_dim_refrac , 3,activation='exp', exp_max=-0.2)
         nn.init.constant_(self.refrac_light[-2].bias, np.log(0.5))
 
         # human lights are the lights reflected from the photo capturer
@@ -1451,7 +1451,7 @@ class AppShadingNetwork_SpecInner(nn.Module):
         reflective = torch.sum(view_dirs * normals, -1, keepdim=True) * normals * 2 - view_dirs
         NoV = torch.sum(normals * view_dirs, -1, keepdim=True)
 
-        metallic = self.metallic_predictor(torch.cat([feature_vectors, points], -1)) * 0
+        metallic = self.metallic_predictor(torch.cat([feature_vectors, points], -1))
         roughness = self.roughness_predictor(torch.cat([feature_vectors, points], -1)) 
         albedo = self.albedo_predictor(torch.cat([feature_vectors, points], -1))
 

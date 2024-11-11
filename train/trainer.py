@@ -160,11 +160,11 @@ class Trainer:
                     loss = loss + torch.mean(v)
 
             loss.backward()
-            for name, param in self.network.named_parameters():
-                if name.find('stage1_network') != -1 and name.find('outer_nerf') == -1:
-                 #   print(name)
-                    if param.grad is not None:
-                        param.grad *= 0.001 #.zero_()
+           # for name, param in self.network.named_parameters():
+            #   if name.find('stage1_network') != -1 and name.find('outer_nerf') == -1:
+                #   print(name)
+           #        if param.grad is not None:
+            #           param.grad *= 0.1 #.zero_()
                 #else:
                  #   print(name + '!!!!')
            #print(self.network.color_network.refrac_light1[0].grad)

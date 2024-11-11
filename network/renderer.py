@@ -1021,7 +1021,7 @@ class Stage2Renderer(nn.Module):
                                       weight_norm=True, sdf_activation=self.cfg['sdf_activation'])
 
         self.deviation_network_inner = SingleVarianceNetwork(init_val=self.cfg['inv_s_init'], activation=self.cfg['std_act'])
-        self.color_network_inner = AppShadingNetwork(self.cfg['shader_config'])
+        self.color_network_inner = AppShadingNetwork_SpecInner(self.cfg['shader_config'])
         self.sdf_inter_fun = lambda x: self.sdf_network_inner.sdf(x)
 
         if training:
@@ -2255,8 +2255,8 @@ class Stage2Renderer(nn.Module):
                     loss_occ = torch.zeros(1)
                 alpha_nerf = alpha_nerf.reshape(batch_size, n_samples)
                 sampled_color_nerf = sampled_color_nerf.reshape(batch_size, n_samples,3)
-                gradient_error  += torch.mean((torch.linalg.norm(gradients_inner, ord=2, dim=-1) - 1.0) ** 2)
-                std_inner += torch.mean(1 / inv_s_inner)
+                gradient_error  = (torch.linalg.norm(gradients_inner, ord=2, dim=-1) - 1.0) ** 2
+                std_inner = torch.mean(1 / inv_s_inner)
             
             if points_for_neus.nelement() > 0:
                 # print('111')

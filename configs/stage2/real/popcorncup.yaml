@@ -1,4 +1,4 @@
-name: popcorncup_all_s2_5
+name: popcorncup_all_s2_6
 
 ####network#####
 network: stage2
@@ -14,10 +14,10 @@ get_mask: true
 zero_thickness: False
 
 ######loss######
-loss: ['eikonal','nerf_render', 'std', 'occ']
+loss: ['eikonal', 'nerf_render', 'std', 'occ']
 val_metric: [ 'stage2']
 key_metric_name: psnr
-eikonal_weight: 0.05
+eikonal_weight: 0.01
 freeze_inv_s_step: 15000
 
 ####dataset#####
