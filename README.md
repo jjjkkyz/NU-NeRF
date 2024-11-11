@@ -67,7 +67,7 @@ We have provided  some synthetic and real datasets used in the paper in [Google 
 Please consult [the manual for NeRO for now](https://github.com/liuyuan-pal/NeRO/blob/main/custom_object.md).
 
 ### Fill in config files or use the corresponding file for our dataset
-Explanations of some essential entrys in the config files. Most of the config entry should document themselves.
+Explanations of some essential entrys in the config files. Most of the config entry should document themselves. If you are using our released datasets, you can use the configs in the configs/ folder, only needing to modify the dataset directories.
 
 ```yaml
 network: shape # set to 'shape' if stage1, 'stage2' if stage2.
