@@ -607,7 +607,7 @@ class AppShadingNetwork(nn.Module):
        # nn.init.constant_(self.reflec_weight[-2].bias, self.cfg['inner_init'])
         self.iors = make_predictor(feats_dim + 3, 1)
 
-        self.refrac_light = make_predictor(pos_dim_refrac + dir_dim_refrac , 3,activation='exp', exp_max=-0.5)
+        self.refrac_light = make_predictor(pos_dim_refrac + dir_dim_refrac , 3,activation='exp', exp_max=exp_max)
         nn.init.constant_(self.refrac_light[-2].bias, np.log(0.5))
 
         # human lights are the lights reflected from the photo capturer

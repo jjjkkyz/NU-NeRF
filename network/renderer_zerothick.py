@@ -1973,7 +1973,7 @@ class Stage2Renderer(nn.Module):
             #print(i)
             colors[i - 1][converges[i-1].flatten()] += colors[i]
         ray_rgb = colors[0]
-        #ray_rgb = linear_to_srgb(ray_rgb)#torch.clamp(linear_to_srgb(ray_rgb), min=0.0, max=1.0)
+        ray_rgb = torch.clamp(linear_to_srgb(ray_rgb), min=0.0, max=1.0)
        # exit(1)
        # print()
     #    print(normals_output.sum())
