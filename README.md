@@ -10,6 +10,8 @@
 ### University of Chinese Academy of Sciences
 
 ### [KIRI Innovation](https://www.kiriengine.app/)
+
+### University of California, Santa Barbara
 ## [Project Page](http://geometrylearning.com/NU-NeRF/) | [Paper](https://drive.google.com/drive/folders/1DP_aQ5GRow-Se4LpImYLjX3mah2__PSh?usp=sharing) (Our version, not TOG version)
 ****
 
