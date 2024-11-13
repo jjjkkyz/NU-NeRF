@@ -125,7 +125,7 @@ If you find the paper/code/data helpful for you, please cite our work:
 @article{NU-NeRF,
     author = {Jia-Mu Sun and Tong Wu and Ling-Qi Yan and Lin Gao},
     title = {NU-NeRF: Neural Reconstruction of Nested Transparent Objects with Uncontrolled Capture Environment},
-    booktitle = {ACM Transactions on Graphics(ACM SIGGRAPH Asia 2024)},
+    journal = {ACM Transactions on Graphics(ACM SIGGRAPH Asia 2024)},
     year = {2024}
 }
 ```
