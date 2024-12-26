@@ -23,9 +23,9 @@ freeze_inv_s_step: 15000
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
-stage1_mesh_dir: ./data/meshes/real_bottle-122000_simplified.ply
-stage1_ckpt_dir: ./data/model/real_bottle/model_best.pth
-stage1_cfg_dir: ./configs/shape/real/real_bottle.yaml
+stage1_mesh_dir: <stage1_mesh_dir>
+stage1_ckpt_dir: <stage1_ckpt_dir>
+stage1_cfg_dir: <stage1_cfg_dir>
 train_dataset_cfg:
   database_name: custom/real_bottle/720
 val_set_list:

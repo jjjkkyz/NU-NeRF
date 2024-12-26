@@ -99,6 +99,14 @@ python extract_mesh_stage1.py --cfg configs/shape/nerf/spherepot.yaml
 python render_mask.py --cfg configs/shape/nerf/spherepot.yaml --mesh_path <exported mesh path>
 python mask_erosion.py --cfg configs/shape/nerf/spherepot.yaml --mesh_path <exported mesh path>
 ```
+### Fill in directories of the Stage 2 config file
+```yaml
+#Please fill in the following 3 directories:
+stage1_mesh_dir: <stage1_mesh_dir> # should be the extracted SIMPLIFIED mesh 
+stage1_ckpt_dir: <stage1_ckpt_dir> # should be the checkpoint at data/model/EXP_NAME/model_best.pth or model.pth
+stage1_cfg_dir: <stage1_cfg_dir> # should be the stage1 config file you used, here it should be ./configs/shape/nerf/spherepot.yaml 
+```
+
 
 ### Run Stage 2 Reconstruction(Example on Spherepot dataset)
 ```bash

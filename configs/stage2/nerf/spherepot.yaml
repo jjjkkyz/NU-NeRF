@@ -22,9 +22,9 @@ freeze_inv_s_step: 5000
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
-stage1_mesh_dir: ./data/meshes/spherepot_s2-500000_simplified.ply
-stage1_ckpt_dir: ./data/model/spherepot_s2/model_best.pth
-stage1_cfg_dir: ./configs/shape/nerf/spherepot_s2.yaml
+stage1_mesh_dir: <stage1_mesh_dir>
+stage1_ckpt_dir: <stage1_ckpt_dir>
+stage1_cfg_dir: <stage1_cfg_dir>
 train_dataset_cfg:
   database_name: nerf/spherepot_s2
 val_set_list:
