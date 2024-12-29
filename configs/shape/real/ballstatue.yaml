@@ -6,6 +6,7 @@ database_name: custom/ballstatue/1080
 shader_config:
   sphere_direction: true
   human_light: false
+  light_exp_max: 5.0
 apply_occ_loss: true
 occ_loss_step: 15000
 get_mask: false
@@ -13,10 +14,11 @@ zero_thickness: False
 is_nerf: false
 
 ######loss######
-loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','outer_reg']
+loss: ['nerf_render','eikonal','std','init_sdf_reg','occ','outer_reg', 'normal_ori']
 val_metric: ['shape_render']
 key_metric_name: psnr
 eikonal_weight: 0.1
+outer_reg_loss_weight: 0.1
 freeze_inv_s_step: 15000
 
 ####dataset#####

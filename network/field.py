@@ -847,7 +847,7 @@ class AppShadingNetwork_S2(nn.Module):
         indirect_light_0 = self.stage1_network.color_network.inner_light(torch.cat([pts, ref_roughness_0], -1))
         ref_ = self.stage1_network.color_network.dir_enc(reflective)
         occ_prob = self.stage1_network.color_network.inner_weight(torch.cat([pts.detach(), ref_.detach()], -1))  # this is occlusion prob
-       # occ_prob = occ_prob * 0.5 + 0.5
+        occ_prob = occ_prob * 0.5 + 0.5
         occ_prob_ = torch.clamp(occ_prob, min=0, max=1)
 
         light = indirect_light * occ_prob_ + direct_light * (
@@ -1218,7 +1218,7 @@ class AppShadingNetwork_DiffuseInner(nn.Module):
         indirect_light = self.inner_light(torch.cat([pts, ref_roughness], -1))
         ref_ = self.dir_enc(reflective)
         occ_prob = self.inner_weight(torch.cat([pts.detach(), ref_.detach()], -1))  # this is occlusion prob
-        #occ_prob = occ_prob * 0.5 + 0.5
+        occ_prob = occ_prob * 0.5 + 0.5
         occ_prob_ = torch.clamp(occ_prob, min=0, max=1)
 
         light = indirect_light * occ_prob_ + (human_light * human_weight + direct_light * (1 - human_weight)) * (
@@ -1333,7 +1333,7 @@ class AppShadingNetwork_SpecInner(nn.Module):
         super().__init__()
         self.cfg = {**self.default_cfg, **cfg}
         feats_dim = 256
-
+    
         # material MLPs
         self.metallic_predictor = make_predictor(feats_dim + 3, 1)
         if self.cfg['metallic_init'] != 0:
@@ -1419,7 +1419,7 @@ class AppShadingNetwork_SpecInner(nn.Module):
         indirect_light_0 = self.inner_light(torch.cat([pts, ref_roughness_0], -1))
         ref_ = self.dir_enc(reflective)
         occ_prob = self.inner_weight(torch.cat([pts.detach(), ref_.detach()], -1))  # this is occlusion prob
-       # occ_prob = occ_prob * 0.5 + 0.5
+        occ_prob = occ_prob * 0.5 + 0.5
         occ_prob_ = torch.clamp(occ_prob, min=0, max=1)
 
         light = indirect_light * occ_prob_ + (human_light * human_weight + direct_light * (1 - human_weight)) * (
