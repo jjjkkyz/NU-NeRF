@@ -22,10 +22,7 @@ freeze_inv_s_step: 15000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: ./datasets
-stage1_mesh_dir: <stage1_mesh_dir>
-stage1_ckpt_dir: <stage1_ckpt_dir>
-stage1_cfg_dir: <stage1_cfg_dir>
+dataset_dir: /home/sunjiamu/instant-ngp
 train_dataset_cfg:
   database_name: custom/wineglass/1024
 val_set_list:
@@ -39,7 +36,7 @@ val_set_list:
 optimizer_type: adam
 lr_type: warm_up_cos
 lr_cfg: {}
-total_step: 150000
+total_step: 1200000
 val_interval: 5000
 save_interval: 1000
 train_log_step: 20

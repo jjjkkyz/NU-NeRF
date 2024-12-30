@@ -21,7 +21,7 @@ freeze_inv_s_step: 15000
 
 ####dataset#####
 train_dataset_type: dummy
-dataset_dir: ./datasets
+dataset_dir: /home/sunjiamu/instant-ngp
 train_dataset_cfg:
   database_name: custom/wineglass/1024
 val_set_list:

@@ -198,7 +198,6 @@ class OuterRegLoss(Loss):
 
     def __init__(self, cfg):
         self.cfg = {**self.default_cfg, **cfg}
-       # print('outer_reg_loss_weight' + str(self.cfg['outer_reg_loss_weight']))
 
     def __call__(self, data_pr, data_gt, step, *args, **kwargs):
         outputs = {}

@@ -1,4 +1,4 @@
-name: popcorncup_all_s2_1
+name: popcorncup_all_s2
 
 ####network#####
 network: stage2
@@ -23,9 +23,9 @@ freeze_inv_s_step: 10000
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
-stage1_mesh_dir: <stage1_mesh_dir>
-stage1_ckpt_dir: <stage1_ckpt_dir>
-stage1_cfg_dir: <stage1_cfg_dir>
+stage1_mesh_dir: ./data/meshes/popcorncup_all_2-200000_simplified.ply
+stage1_ckpt_dir: ./data/model/popcorncup_all_2/model.pth
+stage1_cfg_dir: ./configs/shape/real/popcorncup.yaml
 train_dataset_cfg:
   database_name: custom/popcorncup_all/1080
 val_set_list:

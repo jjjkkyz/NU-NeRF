@@ -4,6 +4,9 @@ from train.trainer import Trainer
 from train.trainer_zero import Trainer_zero
 from utils.base_utils import load_cfg
 
+import faulthandler
+faulthandler.enable()
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--cfg', type=str)
 #parser.add_argument("--zero_thickness", action="store_true")

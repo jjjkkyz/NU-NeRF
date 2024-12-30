@@ -23,9 +23,9 @@ freeze_inv_s_step: 15000
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
-stage1_mesh_dir: <stage1_mesh_dir>
-stage1_ckpt_dir: <stage1_ckpt_dir>
-stage1_cfg_dir: <stage1_cfg_dir>
+stage1_mesh_dir: ./data/meshes/ballstatue-300000_simplified.ply
+stage1_ckpt_dir: ./data/model/ballstatue/model_best.pth
+stage1_cfg_dir: ./configs/shape/real/ballstatue.yaml
 train_dataset_cfg:
   database_name: custom/ballstatue/1080
 val_set_list:

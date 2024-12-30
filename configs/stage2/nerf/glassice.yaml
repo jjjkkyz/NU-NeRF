@@ -1,4 +1,4 @@
-name: glassice_s2
+name: glassice_s2_1
 
 ####network#####
 network: stage2
@@ -22,9 +22,9 @@ freeze_inv_s_step: 5000
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
-stage1_mesh_dir: <stage1_mesh_dir>
-stage1_ckpt_dir: <stage1_ckpt_dir>
-stage1_cfg_dir: <stage1_cfg_dir>
+stage1_mesh_dir: ./data/meshes/glassice1-485000_simplified.ply
+stage1_ckpt_dir: ./data/model/glassice1/model_best.pth
+stage1_cfg_dir: ./configs/shape/nerf/glassice.yaml
 train_dataset_cfg:
   database_name: nerf/glassice
 val_set_list:

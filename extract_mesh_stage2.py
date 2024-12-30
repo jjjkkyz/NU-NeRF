@@ -41,7 +41,7 @@ def main():
     with torch.no_grad():
         vertices, triangles = extract_geometry(bbox_min, bbox_max, flags.resolution, 0,
                                                lambda x: torch.where( network_stage1.sdf_network.sdf(x) < 0, network.sdf_network_inner.sdf(x), torch.ones((x.shape[0],1),device='cuda:0')))
-                                              # lambda x:  network.sdf_network.sdf(x))
+                                              # lambda x:  network.sdf_network_inner.sdf(x))
 
     # output geometry
     mesh = trimesh.Trimesh(vertices, triangles)
@@ -53,6 +53,6 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', type=str, required=True)
-    parser.add_argument('--resolution', type=int, default=1024)
+    parser.add_argument('--resolution', type=int, default=256)
     flags = parser.parse_args()
     main()

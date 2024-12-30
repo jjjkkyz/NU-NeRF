@@ -2,7 +2,7 @@ name: spherepot_s2
 
 ####network#####
 network: stage2
-database_name: nerf/spherepot_s2
+database_name: nerf/spherepot
 shader_config:
   sphere_direction: false
   human_light: false
@@ -22,17 +22,17 @@ freeze_inv_s_step: 5000
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
-stage1_mesh_dir: <stage1_mesh_dir>
-stage1_ckpt_dir: <stage1_ckpt_dir>
-stage1_cfg_dir: <stage1_cfg_dir>
+stage1_mesh_dir: ./data/meshes/spherepot-200000_simplified.ply
+stage1_ckpt_dir: ./data/model/spherepot/model_best.pth
+stage1_cfg_dir: ./configs/shape/nerf/spherepot.yaml
 train_dataset_cfg:
-  database_name: nerf/spherepot_s2
+  database_name: nerf/spherepot
 val_set_list:
   -
     name: val
     type: dummy
     cfg:
-      database_name: nerf/spherepot_s2
+      database_name: nerf/spherepot
 
 ####trainier####
 optimizer_type: adam

@@ -22,9 +22,9 @@ freeze_inv_s_step: 5000
 ####dataset#####
 train_dataset_type: dummy
 dataset_dir: ./datasets
-stage1_mesh_dir: <stage1_mesh_dir>
-stage1_ckpt_dir: <stage1_ckpt_dir>
-stage1_cfg_dir: <stage1_cfg_dir>
+stage1_mesh_dir: ./data/meshes/plastic_bottle_s2-500000_simplified.ply
+stage1_ckpt_dir: ./data/model/plastic_bottle_s2/model_best.pth
+stage1_cfg_dir: ./configs/shape/nerf/plastic_bottle_s2.yaml
 train_dataset_cfg:
   database_name: nerf/plastic_bottle_s2
 val_set_list:
